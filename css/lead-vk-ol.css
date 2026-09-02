@@ -1,0 +1,16 @@
+.lv-ol { max-width: 1100px; }
+.lv-grid { display: grid; gap: 16px; margin: 16px 0; }
+@media (min-width: 900px) {
+  .lv-grid { grid-template-columns: 1fr minmax(240px, 320px); align-items: start; }
+}
+.lv-section-title { margin: 0 0 14px; font-size: 1.05rem; }
+.lv-scenario .field { margin-bottom: 12px; }
+.lv-scenario .field span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.lv-row-fields { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+.lv-inline { max-width: 160px; }
+.lv-hint { font-size: 12px; margin: 6px 0 0; }
+.lv-tasks { margin-top: 16px; }
+.lv-leads { margin-top: 16px; }
+.lv-lead-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.lv-lead-row:last-child { border-bottom: none; }
+.lv-paywall { margin-bottom: 16px; }

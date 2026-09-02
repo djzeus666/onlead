@@ -1,0 +1,74 @@
+/* VK-инструменты — hub + vk-tool-ui parity */
+
+.vk-ol-hub-head { margin-bottom: 24px; }
+.vk-ol-intro { max-width: 42rem; margin: 0; line-height: 1.5; }
+
+.vk-ol-section { margin-bottom: 32px; }
+.vk-ol-section-head { margin-bottom: 12px; }
+.vk-ol-section-head h2 { margin: 0 0 4px; font-size: 1.125rem; }
+.vk-ol-section-head p { margin: 0; font-size: 12px; }
+
+.vk-ol-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.vk-ol-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  min-height: 100%;
+}
+.vk-ol-card:hover { border-color: var(--teal-2, #0d9488); }
+.vk-ol-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.vk-ol-card-top h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.vk-ol-card-badges { display: flex; flex-wrap: wrap; gap: 4px; flex-shrink: 0; }
+.vk-ol-card-desc { margin: 0; font-size: 13px; line-height: 1.45; flex: 1; }
+.vk-ol-card-foot { margin: 0; font-size: 11px; }
+.vk-ol-card-link { font-size: 13px; font-weight: 500; color: var(--teal-2, #0d9488); margin-top: 4px; }
+.chip-muted { opacity: 0.65; }
+
+.vk-ol-head { align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+.vk-ol-desc { max-width: 42rem; margin: 8px 0 0; line-height: 1.5; }
+
+.vk-ol-stats { margin: 16px 0; }
+.vk-ol-stats-title { margin: 0 0 12px; font-size: 1rem; font-weight: 600; }
+.vk-ol-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .vk-ol-stats-grid { grid-template-columns: repeat(4, 1fr); }
+}
+.vk-ol-stat {
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.03);
+}
+.vk-ol-stat b { display: block; font-size: 1.25rem; margin-top: 4px; }
+.vk-ol-stats-foot { margin: 12px 0 0; font-size: 12px; }
+
+.vk-ol-log { margin-top: 16px; }
+.vk-ol-log-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+.vk-ol-log-body { flex: 1; min-width: 160px; }
+.vk-ol-log-body b { font-weight: 600; }
+.vk-ol-log-body p { margin: 4px 0 0; font-size: 12px; }
+.vk-ol-log-time { font-size: 11px; display: block; margin-top: 4px; }
+
+.vk-ol .task-grid { margin-top: 16px; }

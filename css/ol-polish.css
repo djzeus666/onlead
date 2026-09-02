@@ -1,0 +1,325 @@
+/* Shared OL layout polish — landings, leadgen, vk-tools */
+
+.lg-ol,
+.vk-ol,
+.ol-cabinet,
+.ol-editor {
+  --ol-gap: 12px;
+  --ol-radius: 12px;
+}
+
+/* Page headers */
+.ol-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.ol-page-head h1 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.ol-page-head__lead {
+  margin: 6px 0 0;
+  max-width: 42rem;
+  line-height: 1.5;
+}
+.ol-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 0 !important;
+}
+.ol-back {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--lk-muted, var(--muted));
+  text-decoration: none;
+  margin-bottom: 6px;
+}
+.ol-back:hover {
+  text-decoration: underline;
+  color: var(--teal-2);
+}
+
+/* Toolbar pills in cabinet */
+.ol-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.ol-tpl-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+/* Modals — unified */
+.ol-modal,
+.lg-ol-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(24, 35, 56, 0.48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.ol-modal[hidden],
+.lg-ol-modal[hidden] {
+  display: none !important;
+}
+.ol-modal-box,
+.lg-ol-modal-box {
+  background: var(--lk-panel, #fff);
+  border-radius: 16px;
+  border: 1px solid var(--lk-line, var(--border));
+  width: 100%;
+  max-width: 540px;
+  max-height: min(88vh, 760px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 48px rgba(24, 35, 56, 0.2);
+  overflow: hidden;
+}
+.ol-modal-head,
+.lg-ol-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--lk-line, var(--border));
+  flex-shrink: 0;
+}
+.ol-modal-head h3,
+.lg-ol-modal-head h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+.ol-modal-body,
+.lg-ol-modal-body {
+  padding: 16px;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+.ol-modal-foot,
+.lg-ol-modal-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--lk-line, var(--border));
+  flex-shrink: 0;
+}
+
+/* Landings cabinet */
+.ol-cabinet > h2 {
+  margin: 28px 0 12px;
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+.ol-cabinet .list-item {
+  align-items: center;
+}
+.ol-editor .ol-page-head {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--lk-bg, #eef0f4);
+  padding: 4px 0 12px;
+  margin-bottom: 12px;
+}
+.ol-editor-head {
+  width: 100%;
+}
+.ol-editor-head .ol-page-head__main {
+  flex: 1;
+  min-width: 120px;
+}
+.ol-editor .ol-ai-box h3,
+.ol-pro-panel h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+/* Leadgen */
+.lg-ol .h-row.lg-ol-head {
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.lg-ol-scan-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-width: min(100%, 280px);
+}
+@media (min-width: 720px) {
+  .lg-ol-scan-bar {
+    align-items: flex-end;
+    min-width: 280px;
+  }
+}
+.lg-ol-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.lg-ol-bar .field {
+  margin: 0;
+  min-width: 0;
+}
+.lg-ol-bar-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.lg-ol-grid .card h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+.lg-ol-grid .card .h-row {
+  margin: 0 0 10px;
+  align-items: center;
+}
+.lg-ol-matches-head {
+  margin-bottom: 12px !important;
+  align-items: flex-start;
+}
+.lg-ol-matches-head h3 {
+  font-size: 15px;
+  font-weight: 650;
+}
+.lg-ol-filters-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+  flex: 1;
+  min-width: 200px;
+}
+.lg-ol-adv-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+@media (max-width: 640px) {
+  .lg-ol-adv-filters {
+    grid-template-columns: 1fr;
+  }
+  .lg-ol-filters-wrap {
+    align-items: stretch;
+    width: 100%;
+  }
+  .lg-ol-filters {
+    justify-content: flex-start;
+  }
+}
+.lg-ol-match-actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+@media (min-width: 768px) {
+  .lg-ol-match-actions {
+    flex-direction: column;
+    align-items: flex-end;
+    min-width: 108px;
+  }
+}
+.lg-ol-match-actions .btn-sm {
+  white-space: nowrap;
+}
+.lg-ol-modal .lg-add {
+  flex-wrap: wrap;
+}
+.lg-ol-modal .lg-add input {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.lg-ol-modal .lg-add .btn {
+  flex: 0 0 auto;
+}
+.lg-ol-groups {
+  max-height: 340px;
+  overflow: auto;
+  border: 1px solid var(--lk-line, var(--border));
+  border-radius: 10px;
+  padding: 8px;
+}
+.lg-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+/* VK tools */
+.vk-ol-head {
+  align-items: flex-start !important;
+  margin-bottom: 12px !important;
+}
+.vk-ol-head .ol-page-actions,
+.vk-ol-actions {
+  flex-direction: row !important;
+  align-items: center !important;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.vk-ol .task-grid {
+  margin-top: 16px;
+}
+.vk-ol .task-grid form.card h3,
+.vk-ol .task-grid > div > h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+.vk-ol-card {
+  padding: 16px;
+}
+.vk-ol-card-link {
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .ol-page-actions,
+  .vk-ol-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .ol-page-actions .btn,
+  .vk-ol-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .ol-editor .ol-page-actions .btn {
+    flex: 1 1 calc(50% - 4px);
+  }
+}

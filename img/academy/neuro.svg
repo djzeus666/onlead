@@ -1,0 +1,10 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img">
+  <rect fill="#f5f2eb" width="1200" height="720"/>
+  <rect fill="#182338" width="220" height="720"/>
+  <rect fill="#315cff" x="24" y="48" width="172" height="12" rx="6"/>
+  <rect fill="#2a3550" x="24" y="80" width="140" height="8" rx="4"/>
+  <rect fill="#2a3550" x="24" y="104" width="120" height="8" rx="4"/>
+  <rect fill="#fff" x="260" y="48" width="900" height="624" rx="18" stroke="#d9d5cc"/>
+  <text x="710" y="340" text-anchor="middle" font-family="system-ui,sans-serif" font-size="36" font-weight="700" fill="#182338">Нейрокомментарии</text>
+  <text x="710" y="390" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#6f6d68">OnLead · Академия</text>
+</svg>

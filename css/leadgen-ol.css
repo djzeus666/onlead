@@ -1,0 +1,62 @@
+/* Лидоскоп — online-lead.ru style */
+
+.lg-ol-head { align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.lg-ol-scan-bar { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.lg-ol-mode { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.lg-ol-mode-btn {
+  border: 0; background: transparent; padding: 10px 14px; font-size: 14px; cursor: pointer;
+  color: var(--muted); min-width: 7.5rem;
+}
+.lg-ol-mode-btn.on { background: var(--ink); color: #fff; }
+.lg-ol-mode-btn + .lg-ol-mode-btn { border-left: 1px solid var(--border); }
+.lg-ol-scan-meta { font-size: 12px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+
+.lg-ol-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-top: 12px; }
+.lg-ol-bar .field { flex: 1; min-width: 140px; margin: 0; }
+.lg-ol-narrow { max-width: 100px; flex: 0 1 100px; }
+.lg-ol-bar-foot { display: flex; align-items: center; gap: 8px; width: 100%; }
+
+.lg-ol-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-top: 12px; }
+.lg-ol-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.lg-ol-filters-wrap { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.lg-ol-filters { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.lg-ol-filter {
+  border: 1px solid var(--border); background: transparent; border-radius: 8px;
+  padding: 4px 10px; font-size: 12px; cursor: pointer;
+}
+.lg-ol-filter.on.kind { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+.lg-ol-filter.on.status { background: var(--ink); color: #fff; border-color: var(--ink); }
+.lg-ol-adv-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.lg-ol-adv-filters input {
+  flex: 1; min-width: 120px; border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px 10px; font-size: 12px; background: transparent;
+}
+
+.lg-ol-match-list { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.lg-ol-match {
+  display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between;
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+}
+.lg-ol-match:last-child { border-bottom: 0; }
+.lg-ol-match-body { flex: 1; min-width: 200px; }
+.lg-ol-match-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 11px; margin-bottom: 6px; }
+.chip-phrase { background: rgba(0,0,0,0.06); }
+.chip-ai { background: rgba(245,158,11,0.15); }
+.chip-muted { opacity: 0.7; }
+.lg-ol-author { margin: 0 0 4px; font-size: 13px; }
+.lg-ol-text { margin: 0; font-size: 14px; line-height: 1.45; }
+.lg-ol-link { font-size: 12px; }
+.lg-ol-match-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 100px; }
+.lg-ol-expand { margin-top: 10px; padding: 10px; border: 1px dashed var(--border); border-radius: 10px; }
+.lg-ol-draft textarea { width: 100%; margin-top: 6px; font-size: 13px; }
+
+mark.lg-hit { background: rgba(251, 191, 36, 0.85); color: #1a1a1a; border-radius: 2px; padding: 0 2px; }
+
+.lg-ol-modal {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.lg-ol-modal[hidden] { display: none !important; }
+
+.lg-ol-paywall { margin-bottom: 16px; }

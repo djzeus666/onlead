@@ -1,0 +1,130 @@
+# OnLead production guide
+
+## Stack
+
+| Piece | Role |
+| --- | --- |
+| `onlead-app` (Docker) | Node 22 API + static cabinet/admin |
+| Caddy (shared VPS) | TLS + reverse proxy to `onlead:4173` |
+| `data/onlead.sqlite` | Primary storage (built-in `node:sqlite`, WAL) |
+| `data/store.json` | JSON mirror for backup/restore |
+| `/opt/onlead/backups` | Off-volume backup rotation |
+| S3 / MinIO (optional) | Remote backup copies |
+
+## Boot requirements
+
+Production (`NODE_ENV=production`) **requires** built-in SQLite. The container sets:
+
+```yaml
+NODE_OPTIONS: --experimental-sqlite
+```
+
+If SQLite cannot open, the process exits — there is no JSON-only fallback on prod.
+
+### Required env (`.env.prod`)
+
+| Variable | Notes |
+| --- | --- |
+| `TOKEN_ENCRYPTION_KEY` | Random 64-char hex; not the `.env.example` placeholder |
+| `ADMIN_PASSWORD` | Strong password; not `admin1234` |
+| `PUBLIC_URL` | `https://onlead.m360-ural.online` |
+| `VK_APP_ID` / `VK_REDIRECT_URI` | `5530956` + `https://oauth.vk.com/blank.html` |
+
+### Payments & mail (live)
+
+| Variable | Notes |
+| --- | --- |
+| `PAYMENTS_MODE` | `live` for real YooKassa |
+| `YOOKASSA_SHOP_ID` / `YOOKASSA_SECRET_KEY` | Same shop as post2post |
+| `SMTP_*` | Outbound mail (synced from post2post on deploy) |
+
+`mock:` VK tokens are rejected when `ALLOW_MOCK_TOKENS` is unset in production.
+
+## Deploy
+
+From Windows:
+
+```powershell
+.\scripts\deploy-remote.ps1
+```
+
+On the server (`/opt/onlead`):
+
+```bash
+bash scripts/deploy-server.sh
+```
+
+Deploy builds the image, starts compose, wires MinIO network, reloads Caddy, and waits for health.
+
+## Health
+
+`GET /api/health` (public, no auth):
+
+```json
+{
+  "ok": true,
+  "storage": "sqlite-schema",
+  "storageSchema": 10,
+  "paymentsLive": true,
+  "mailConfigured": true,
+  "mocksAllowed": false,
+  "telegramLive": true,
+  "backups": { "remoteOk": true }
+}
+```
+
+Expected production values:
+
+- `storage`: `sqlite-schema` (not `json`)
+- `storageSchema`: `10` (see `server/schema.mjs`)
+- `mocksAllowed`: `false`
+
+Admin panel shows SQLite schema version on the dashboard.
+
+## Service audit
+
+`/api/health` only reports configuration. To check that every service actually
+answers — YooKassa, SMTP, each Telegram bot and VK token, AI chat and image,
+backups, worker, landings — run the audit inside the container:
+
+```bash
+docker exec onlead-app node scripts/service-audit.mjs
+docker exec onlead-app node scripts/service-audit.mjs --send-mail   # also delivers a test letter
+```
+
+It prints one line per service and exits `1` if anything is `FAIL`, so it can
+gate a deploy. `OFF` means deliberately not configured (geo backups, legal
+requisites); `WARN` is a data state worth a look, not an outage.
+
+## Ops scripts (inside container)
+
+Use the DB loader (SQLite-first), not raw `store.json`:
+
+```bash
+docker exec onlead-app node --experimental-sqlite scripts/inspect-billing.mjs
+docker exec onlead-app node --experimental-sqlite scripts/inspect-ai.mjs
+docker exec onlead-app node --experimental-sqlite scripts/probe-yookassa-payment.mjs
+```
+
+## Backups
+
+- Hourly JSON + SQLite copies via `server/backup.mjs`
+- Off-site dir: `BACKUP_OFFSITE_DIR=/app/data/offsite` → host `/opt/onlead/backups`
+- Optional S3: `S3_BACKUP_*` (synced from post2post MinIO on deploy)
+
+Restore JSON snapshot:
+
+```bash
+bash scripts/restore-store.sh /opt/onlead/backups/store-YYYYMMDD-HHMMSS.json
+```
+
+## Pre-go-live checklist
+
+- [ ] `GET /api/health` → `storage: sqlite-schema`, `mocksAllowed: false`
+- [ ] `ADMIN_PASSWORD` changed from seed value
+- [ ] `TOKEN_ENCRYPTION_KEY` is unique 64-char hex
+- [ ] YooKassa test payment succeeds (`paymentsLive: true`)
+- [ ] SMTP sends verification/reset mail (`mailConfigured: true`)
+- [ ] VK OAuth opens app `5530956` with `blank.html` redirect
+- [ ] Backups: `backups.remoteOk: true` or off-site dir populated
+- [ ] Legal requisites filled in admin (Settings → Legal) or `LEGAL_*` env

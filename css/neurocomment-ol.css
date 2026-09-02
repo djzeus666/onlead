@@ -1,0 +1,105 @@
+/* Нейрокомментарии — OL tabs */
+
+.nc-ol { --nc-gap: 12px; }
+.nc-head { align-items: flex-start; }
+.nc-kpi {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+@media (min-width: 720px) {
+  .nc-kpi { grid-template-columns: repeat(4, 1fr); }
+}
+.nc-kpi-card b { display: block; font-size: 1.35rem; margin-bottom: 4px; }
+.nc-kpi-card span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+.nc-toggle {
+  width: 52px; height: 32px; border-radius: 999px; border: 0; cursor: pointer;
+  background: var(--lk-line, #d9dde6); position: relative; flex-shrink: 0;
+}
+.nc-toggle.on { background: var(--teal, #315cff); }
+.nc-toggle::after {
+  content: ""; position: absolute; top: 4px; left: 4px; width: 24px; height: 24px;
+  border-radius: 50%; background: #fff; transition: transform 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.nc-toggle.on::after { transform: translateX(20px); }
+
+.nc-tabs-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px;
+}
+.nc-tabs {
+  display: flex; flex-wrap: wrap; gap: 4px; padding: 3px;
+  background: var(--lk-soft, #eef1f7); border-radius: 10px; border: 1px solid var(--lk-line);
+}
+.nc-tab {
+  border: 0; background: transparent; border-radius: 8px; padding: 8px 12px;
+  font-size: 13px; cursor: pointer; color: var(--lk-muted);
+}
+.nc-tab.on { background: #fff; color: var(--lk-ink); font-weight: 650; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+.nc-panel { display: grid; gap: 16px; }
+.nc-panel h3 { margin: 0 0 10px; font-size: 15px; }
+.nc-inline { max-width: 160px; }
+.nc-modes h3 { margin: 0 0 10px; font-size: 15px; }
+.nc-mode-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.nc-mode-card { display: flex; flex-direction: column; gap: 8px; }
+.nc-mode-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.nc-mode-top h4 { margin: 0; font-size: 14px; }
+.nc-mode-foot { margin: 0; font-size: 11px; }
+
+.nc-target-add { flex-wrap: wrap; margin-bottom: 10px; }
+.nc-list { list-style: none; margin: 0; padding: 0; }
+.nc-list-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 10px 12px; border: 1px solid var(--lk-line); border-radius: 10px; margin-top: 8px;
+  font-size: 13px;
+}
+
+.nc-history-head { margin-bottom: 12px !important; align-items: flex-start; }
+.nc-task-filters { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.nc-task-filter {
+  border: 0; background: var(--lk-soft); border-radius: 8px; padding: 4px 10px;
+  font-size: 12px; cursor: pointer; color: var(--lk-muted);
+}
+.nc-task-filter.on { background: var(--teal); color: #fff; }
+
+.nc-task-list { list-style: none; margin: 0; padding: 0; }
+.nc-task {
+  border: 1px solid var(--lk-line); border-radius: 12px; padding: 12px; margin-top: 10px;
+}
+.nc-task-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.nc-task-link { font-size: 12px; margin-left: auto; }
+.nc-task-cancel { margin-left: auto; }
+.nc-bubbles { display: grid; gap: 10px; }
+.nc-bubble-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 4px; }
+.nc-bubble {
+  border-radius: 12px; padding: 10px 12px; font-size: 13px; line-height: 1.45;
+  max-height: 160px; overflow: auto;
+}
+.nc-bubble-in { background: var(--lk-soft); }
+.nc-bubble-out { background: rgba(49, 92, 255, 0.08); border: 1px solid rgba(49, 92, 255, 0.15); }
+.nc-task-err { margin: 6px 0 0; font-size: 12px; color: var(--warn-fg, #b45309); }
+.nc-empty { padding: 24px; text-align: center; }
+
+.nc-dialog-grid {
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) {
+  .nc-dialog-grid { grid-template-columns: 1fr 1fr; }
+}
+.nc-dialog-list { list-style: none; margin: 0; padding: 0; }
+.nc-dialog-btn {
+  width: 100%; text-align: left; border: 1px solid var(--lk-line); border-radius: 10px;
+  padding: 10px 12px; background: #fff; cursor: pointer; margin-top: 8px;
+}
+.nc-dialog-btn.on { border-color: var(--teal); background: rgba(49, 92, 255, 0.05); }
+.nc-dialog-preview { display: block; font-size: 13px; margin-bottom: 4px; }
+
+.nc-stats-list { margin: 0; padding-left: 18px; line-height: 1.8; font-size: 14px; }
+.nc-steps { margin: 12px 0 0; padding-left: 18px; line-height: 1.55; font-size: 14px; }
+.nc-paywall { margin-bottom: 16px; }

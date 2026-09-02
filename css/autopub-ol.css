@@ -1,0 +1,38 @@
+.ap-ol { max-width: 1100px; }
+.ap-kicker { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 4px; color: var(--muted); }
+.ap-nav { margin-bottom: 14px; flex-wrap: wrap; }
+.ap-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; }
+.ap-card { display: block; text-decoration: none; color: inherit; padding: 16px; }
+.ap-card:hover { border-color: var(--ink-muted); }
+.ap-card b { display: block; margin-bottom: 6px; }
+.ap-layout { display: grid; grid-template-columns: 1fr 1.2fr; gap: 14px; align-items: start; }
+.ap-col { display: flex; flex-direction: column; gap: 12px; }
+.ap-add { display: flex; flex-direction: column; gap: 10px; }
+.ap-src-list { display: flex; flex-direction: column; gap: 8px; }
+.ap-src {
+  display: block; width: 100%; text-align: left; padding: 12px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--surface); cursor: pointer;
+}
+.ap-src.on { border-color: var(--ink); background: var(--surface-2); }
+.ap-src b { display: block; font-size: 13px; }
+.ap-src .muted { font-size: 11px; display: block; margin-top: 4px; }
+.ap-meta { font-size: 11px; color: var(--muted); display: block; margin-top: 4px; }
+.ap-err { font-size: 11px; color: #b91c1c; display: block; margin-top: 4px; }
+.ap-settings .field.chk { flex-direction: row; align-items: center; gap: 8px; }
+.ap-items { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+.ap-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.ap-item b { font-size: 13px; }
+.ap-item p { margin: 4px 0; font-size: 12px; }
+.ap-versions { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+.ap-version-text { width: 100%; min-height: 100px; margin-top: 8px; resize: vertical; }
+.ap-plats { margin: 10px 0; flex-wrap: wrap; }
+.ap-webhook { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.ap-webhook-url {
+  width: 100%; font-size: 11px; padding: 8px 10px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface-2); font-family: ui-monospace, monospace;
+}
+.ap-webhook-hint { font-size: 11px; margin: 0; }
+.ap-webhook-hint code { font-size: 10px; }
+@media (max-width: 860px) {
+  .ap-layout { grid-template-columns: 1fr; }
+}

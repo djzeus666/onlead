@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>OnLead — вход VK</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/theme.css?v=42" />
+  <style>
+    body { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+    .box { width: min(440px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 28px; box-shadow: var(--shadow); text-align: center; }
+    h1 { font-family: var(--serif); font-size: 26px; margin: 0 0 8px; }
+    p { color: var(--muted); margin: 0 0 16px; }
+    .err { color: var(--danger); }
+  </style>
+</head>
+<body>
+  <div class="box" id="box">
+    <h1>Авторизация VK</h1>
+    <p id="msg">Получаем ключ…</p>
+  </div>
+  <script>
+    (function () {
+      var origin = location.origin;
+      var hash = (location.hash || "").replace(/^#/, "");
+      var search = (location.search || "").replace(/^\?/, "");
+      var params = new URLSearchParams(hash || search);
+      var accessToken = params.get("access_token");
+      var code = params.get("code");
+      var userId = params.get("user_id") || undefined;
+      var error = params.get("error");
+      var errorDescription = params.get("error_description") || "";
+      var box = document.getElementById("box");
+      var msg = document.getElementById("msg");
+
+      function notify(payload) {
+        try {
+          if (window.opener) window.opener.postMessage(payload, origin);
+        } catch (e) {}
+      }
+
+      if (error) {
+        var text = errorDescription || error;
+        msg.className = "err";
+        msg.textContent = text;
+        notify({ type: "vk-token-error", error: error, errorDescription: text });
+        return;
+      }
+
+      if (!accessToken && code && window.opener) {
+        notify({ type: "vk-code", code: code, state: params.get("state") || undefined });
+        msg.textContent = "Готово. Можно закрыть это окно.";
+        setTimeout(function () { window.close(); }, 200);
+        return;
+      }
+
+      if (!accessToken) {
+        msg.textContent = "Токен не найден. Закройте окно и войдите ещё раз.";
+        return;
+      }
+
+      var payload = { type: "vk-token", accessToken: accessToken, userId: userId };
+      try {
+        sessionStorage.setItem("onlead-vk-pending", JSON.stringify(payload));
+      } catch (e) {}
+      notify(payload);
+
+      if (window.opener) {
+        msg.textContent = "Готово. Можно закрыть это окно.";
+        setTimeout(function () { window.close(); }, 200);
+        return;
+      }
+
+      msg.textContent = "Ключ получен, возвращаем в кабинет…";
+      location.replace(origin + "/#/office/accounts");
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+data/
+.env
+.env.prod
+deploy.secrets.local
+node_modules/
+.DS_Store
+*.log
+.venv/
+*.tar.gz
+onlead-deploy.tar.gz
