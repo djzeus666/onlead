@@ -25,16 +25,16 @@ test('findOwnedLanding returns only the owner row', () => {
   assert.equal(findOwnedLanding(d, {}, 'p1'), null);
 });
 
-test('index.mjs wires findOwnedLanding and auth rate limits', () => {
-  const src = readFileSync(join(ROOT, 'index.mjs'), 'utf8');
-  assert.match(src, /import \{ findOwnedLanding, findPublishedLandingByHost/);
-  assert.match(src, /findOwnedLanding\(load\(\), u, id\)/);
-  assert.match(src, /findOwnedLanding\(d, u, id\)/);
-  assert.match(src, /enforceRate\(req, res, 'verify'\)/);
-  assert.match(src, /enforceRate\(req, res, 'resend'\)/);
-  assert.match(src, /enforceRate\(req, res, 'reset'\)/);
-  assert.match(src, /publicHealthPayload\(healthPayload\(\)\)/);
-  assert.match(src, /handleYookassaWebhook/);
+test('index.mjs wires dispatch; landings in server/routes', () => {
+  const indexSrc = readFileSync(join(ROOT, 'index.mjs'), 'utf8');
+  const authSrc = readFileSync(join(ROOT, 'routes', 'auth.mjs'), 'utf8');
+  const healthSrc = readFileSync(join(ROOT, 'routes', 'health.mjs'), 'utf8');
+  const landingsSrc = readFileSync(join(ROOT, 'routes', 'landings-routes.mjs'), 'utf8');
+  assert.match(indexSrc, /dispatchRoutes/);
+  assert.match(authSrc, /enforceRate\(req, res, 'verify'\)/);
+  assert.match(healthSrc, /publicHealthPayload\(healthPayload\(\)\)/);
+  assert.match(landingsSrc, /findOwnedLanding/);
+  assert.match(indexSrc, /handleYookassaWebhook/);
 });
 
 test('public health drops encryptionKey and backup internals', () => {

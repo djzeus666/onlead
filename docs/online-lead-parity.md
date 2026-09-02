@@ -328,8 +328,8 @@ OnLead: `js/catalog.js`, `js/app.js`, `server/index.mjs`.
 | Сервис | OL | OnLead | Статус |
 |--------|-----|--------|--------|
 | Аналитика | `/analytics` | `#/office/analytics` | 🟡 |
-| Команда | `/team` | `#/office/team` (owner only) | 🟡 |
-| Рабочий процесс | `/workflow` | — | ❌ |
+| Команда | `/team` | `#/office/team` (invite, roles, shared workspace) | ✅ |
+| Рабочий процесс | `/workflow` | `#/office/workflow` | ✅ |
 | Реф. программа | `/referral` | `#/office/referral` | ✅ |
 | Профиль | `/profile` | `#/office/profile` | ✅ |
 | Настройки | `/settings` (10+ tabs) | `#/office/settings` (timezone, notify, UTM, sigs) | 🟡 |
@@ -352,7 +352,7 @@ OnLead: `js/catalog.js`, `js/app.js`, `server/index.mjs`.
 9. ~~**Контент** — compose + content board~~ 🟡 MVP
 10. ~~**Автопубликация** — RSS, crosspost, webhook~~ 🟡 MVP
 11. **Нейросотрудники** — hub ✅, workstations по приоритету
-12. ~~**Кабинет** — analytics, team, settings~~ 🟡 MVP
+12. ~~**Кабинет** — analytics, team, settings~~ ✅ team + workspace
 13. **Workflow** — `/workflow` OL parity ✅ MVP
 14. **Контент polish** — календарь ✅, watermarks ✅, VK media attach ✅ (MVP)
 15. **AI images page** — `#/office/ai-images` ✅

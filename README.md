@@ -28,9 +28,10 @@ Open http://127.0.0.1:4173/ (canonical public URL in code: `https://onlead.m360-
 
 ```bash
 npm test
+npm run test:e2e
 ```
 
-**200** unit/smoke tests (`server/**/*.test.mjs`): billing, CRM, VK tools, landings, workflow, hash routing, API wiring.
+**204** unit/smoke tests + **5** Playwright E2E scenarios (`server/**/*.test.mjs`, `e2e/`): billing, CRM, VK tools, landings, workflow, team workspace, hash routing, API wiring.
 
 ## Deploy to VPS
 

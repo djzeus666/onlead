@@ -8,3 +8,5 @@ node_modules/
 .venv/
 *.tar.gz
 onlead-deploy.tar.gz
+test-results/
+playwright-report/

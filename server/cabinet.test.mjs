@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   normalizeCabinet, patchCabinet, analyticsReport, listTeamMembers, addCabinetItem,
+  inviteTeamMember, patchTeamMember, removeTeamMember, teamPayload, findPendingTeamInvite,
 } from './cabinet.mjs';
 
 test('normalizeCabinet fills defaults', () => {
@@ -39,6 +40,57 @@ test('listTeamMembers returns owner', () => {
   const db = { users: [{ id: 'u1', name: 'Owner', email: 'o@t.ru' }] };
   const rows = listTeamMembers(db, 'u1');
   assert.equal(rows[0].role, 'owner');
+});
+
+test('inviteTeamMember adds pending invite', () => {
+  const db = { users: [{ id: 'u1', email: 'o@t.ru', name: 'Owner' }] };
+  const r = inviteTeamMember(db, 'u1', { email: 'm@t.ru', role: 'admin' });
+  assert.equal(r.ok, true);
+  assert.equal(r.added, false);
+  assert.equal(db.users[0].teamInvites.length, 1);
+  const payload = teamPayload(db, 'u1');
+  assert.equal(payload.members.length, 2);
+  assert.equal(payload.members[1].status, 'pending');
+});
+
+test('inviteTeamMember attaches existing user', () => {
+  const db = {
+    users: [
+      { id: 'u1', email: 'o@t.ru', name: 'Owner' },
+      { id: 'u2', email: 'm@t.ru', name: 'Member' },
+    ],
+  };
+  const r = inviteTeamMember(db, 'u1', { email: 'm@t.ru', role: 'member' });
+  assert.equal(r.ok, true);
+  assert.equal(r.added, true);
+  assert.equal(db.users[1].teamOwnerId, 'u1');
+});
+
+test('patch and remove team member', () => {
+  const db = {
+    users: [
+      { id: 'u1', email: 'o@t.ru' },
+      { id: 'u2', email: 'm@t.ru', teamOwnerId: 'u1', teamRole: 'member' },
+    ],
+  };
+  const patched = patchTeamMember(db, 'u1', 'u2', { role: 'admin' });
+  assert.equal(patched.ok, true);
+  assert.equal(db.users[1].teamRole, 'admin');
+  const removed = removeTeamMember(db, 'u1', 'u2');
+  assert.equal(removed.ok, true);
+  assert.equal(db.users[1].teamOwnerId, undefined);
+});
+
+test('findPendingTeamInvite validates email', () => {
+  const db = {
+    users: [{
+      id: 'u1',
+      email: 'o@t.ru',
+      teamInvites: [{ id: 'ti1', email: 'm@t.ru', role: 'member', token: 'abc', status: 'pending' }],
+    }],
+  };
+  assert.equal(findPendingTeamInvite(db, 'abc', 'm@t.ru').ok, true);
+  assert.equal(findPendingTeamInvite(db, 'abc', 'x@t.ru').ok, false);
 });
 
 test('addCabinetItem appends signature', () => {

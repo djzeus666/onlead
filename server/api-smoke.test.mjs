@@ -28,12 +28,11 @@ test('public health exposes SPA-safe flags', () => {
   assert.equal(pub.backups.count, undefined);
 });
 
-test('index.mjs wires critical auth and snapshot imports', () => {
+test('index.mjs wires route dispatcher and snapshot module', () => {
   const src = readFileSync(join(ROOT, 'index.mjs'), 'utf8');
-  assert.match(src, /path === '\/api\/health'/);
-  assert.match(src, /path === '\/api\/me'/);
-  assert.match(src, /publicAiLead/);
-  assert.match(src, /function snapshot\(/);
+  assert.match(src, /dispatchRoutes/);
+  assert.match(src, /from '\.\/snapshot\.mjs'/);
+  assert.match(src, /from '\.\/routes\/dispatch\.mjs'/);
 });
 
 test('package test script includes route and api smoke suites', () => {

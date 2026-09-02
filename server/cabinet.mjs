@@ -146,14 +146,177 @@ export function analyticsReport(db, userId, days = 30) {
 }
 
 export function listTeamMembers(db, userId) {
-  const user = (db.users || []).find((u) => u.id === userId);
-  if (!user) return [];
-  return [{
-    id: user.id,
-    name: user.name || user.email,
-    email: user.email,
+  const payload = teamPayload(db, userId);
+  return payload.members;
+}
+
+export function teamPayload(db, userId) {
+  const owner = resolveTeamOwner(db, userId);
+  const actor = db.users.find((u) => u.id === userId);
+  if (!owner) return { ownerId: null, members: [], canManage: false };
+  const canManage = Boolean(actor && !actor.teamOwnerId);
+
+  const members = [{
+    id: owner.id,
+    userId: owner.id,
+    name: owner.name || owner.email,
+    email: owner.email,
     role: 'owner',
+    status: 'active',
   }];
+
+  for (const u of db.users || []) {
+    if (u.id === owner.id) continue;
+    if (u.teamOwnerId === owner.id) {
+      members.push({
+        id: u.id,
+        userId: u.id,
+        name: u.name || u.email,
+        email: u.email,
+        role: u.teamRole === 'admin' ? 'admin' : 'member',
+        status: 'active',
+        joinedAt: u.teamJoinedAt || u.createdAt,
+      });
+    }
+  }
+
+  for (const inv of owner.teamInvites || []) {
+    if (inv.status !== 'pending') continue;
+    members.push({
+      id: inv.id,
+      inviteId: inv.id,
+      name: inv.email.split('@')[0],
+      email: inv.email,
+      role: inv.role === 'admin' ? 'admin' : 'member',
+      status: 'pending',
+      invitedAt: inv.createdAt,
+    });
+  }
+
+  return { ownerId: owner.id, members, canManage };
+}
+
+export function resolveTeamOwner(db, userId) {
+  const user = (db.users || []).find((u) => u.id === userId);
+  if (!user) return null;
+  if (user.teamOwnerId) {
+    return (db.users || []).find((u) => u.id === user.teamOwnerId) || user;
+  }
+  return user;
+}
+
+function assertTeamOwner(db, userId) {
+  const user = (db.users || []).find((u) => u.id === userId);
+  if (!user) return { ok: false, error: 'Пользователь не найден' };
+  if (user.teamOwnerId) return { ok: false, error: 'Только владелец может управлять командой' };
+  return { ok: true, owner: user };
+}
+
+function normalizeTeamRole(role) {
+  return role === 'admin' ? 'admin' : 'member';
+}
+
+export function inviteTeamMember(db, ownerId, { email, role }) {
+  const check = assertTeamOwner(db, ownerId);
+  if (!check.ok) return check;
+  const owner = check.owner;
+  const addr = String(email || '').trim().toLowerCase();
+  const teamRole = normalizeTeamRole(role);
+  if (!addr.includes('@')) return { ok: false, error: 'Укажите email' };
+  if (addr === owner.email) return { ok: false, error: 'Нельзя пригласить себя' };
+
+  const existing = (db.users || []).find((u) => u.email === addr);
+  if (existing?.teamOwnerId && existing.teamOwnerId !== owner.id) {
+    return { ok: false, error: 'Пользователь уже в другой команде' };
+  }
+  if (existing?.teamOwnerId === owner.id) {
+    return { ok: false, error: 'Уже в вашей команде' };
+  }
+
+  owner.teamInvites = owner.teamInvites || [];
+  if (owner.teamInvites.some((i) => i.status === 'pending' && i.email === addr)) {
+    return { ok: false, error: 'Приглашение уже отправлено' };
+  }
+
+  if (existing && !existing.teamOwnerId) {
+    existing.teamOwnerId = owner.id;
+    existing.teamRole = teamRole;
+    existing.teamJoinedAt = Date.now();
+    return { ok: true, added: true, member: { id: existing.id, email: addr, role: teamRole, status: 'active' } };
+  }
+
+  const token = randomBytes(18).toString('base64url');
+  const invite = {
+    id: 'ti' + Date.now(),
+    email: addr,
+    role: teamRole,
+    token,
+    status: 'pending',
+    createdAt: Date.now(),
+  };
+  owner.teamInvites.push(invite);
+  return { ok: true, added: false, invite };
+}
+
+export function patchTeamMember(db, ownerId, targetId, { role }) {
+  const check = assertTeamOwner(db, ownerId);
+  if (!check.ok) return check;
+  const owner = check.owner;
+  const teamRole = normalizeTeamRole(role);
+  const member = (db.users || []).find((u) => u.id === targetId && u.teamOwnerId === owner.id);
+  if (!member) return { ok: false, error: 'Участник не найден' };
+  member.teamRole = teamRole;
+  return { ok: true, member: { id: member.id, email: member.email, role: teamRole } };
+}
+
+export function removeTeamMember(db, ownerId, targetId) {
+  const check = assertTeamOwner(db, ownerId);
+  if (!check.ok) return check;
+  const owner = check.owner;
+  if (targetId === owner.id) return { ok: false, error: 'Нельзя удалить владельца' };
+
+  const member = (db.users || []).find((u) => u.id === targetId && u.teamOwnerId === owner.id);
+  if (member) {
+    delete member.teamOwnerId;
+    delete member.teamRole;
+    delete member.teamJoinedAt;
+    return { ok: true, removed: 'member' };
+  }
+
+  owner.teamInvites = owner.teamInvites || [];
+  const idx = owner.teamInvites.findIndex((i) => i.id === targetId && i.status === 'pending');
+  if (idx >= 0) {
+    owner.teamInvites[idx].status = 'revoked';
+    return { ok: true, removed: 'invite' };
+  }
+  return { ok: false, error: 'Участник или приглашение не найдены' };
+}
+
+export function acceptTeamInvite(db, token, user) {
+  const check = findPendingTeamInvite(db, token, user?.email);
+  if (!check.ok) return check;
+  if (user.teamOwnerId) return { ok: false, error: 'Вы уже в команде' };
+  const { owner, invite } = check;
+  user.teamOwnerId = owner.id;
+  user.teamRole = invite.role === 'admin' ? 'admin' : 'member';
+  user.teamJoinedAt = Date.now();
+  invite.status = 'accepted';
+  invite.acceptedAt = Date.now();
+  invite.memberUserId = user.id;
+  return { ok: true, ownerId: owner.id, role: user.teamRole };
+}
+
+export function findPendingTeamInvite(db, token, email) {
+  const tok = String(token || '').trim();
+  const addr = String(email || '').trim().toLowerCase();
+  if (!tok || !addr.includes('@')) return { ok: false, error: 'Недействительное приглашение' };
+  for (const owner of db.users || []) {
+    const inv = (owner.teamInvites || []).find((i) => i.status === 'pending' && i.token === tok);
+    if (!inv) continue;
+    if (inv.email !== addr) return { ok: false, error: 'Приглашение отправлено на другой email' };
+    return { ok: true, owner, invite: inv };
+  }
+  return { ok: false, error: 'Приглашение не найдено или устарело' };
 }
 
 export const AI_AGENT_CARDS = [

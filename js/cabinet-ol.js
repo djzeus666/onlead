@@ -201,16 +201,54 @@ OnLead.settingsOlPage = function settingsOlPage(state, path) {
 OnLead.teamOlPage = function teamOlPage(state, path) {
   const esc = OnLead.esc || ((s) => String(s ?? ""));
   const nav = OnLead.cabinetOlNav(path);
-  const members = (OnLead._teamMembers || []).length
-    ? OnLead._teamMembers
-    : [{ id: state.user?.id, name: state.user?.name, email: state.user?.email, role: "owner" }];
+  const payload = OnLead._teamPayload || {};
+  const members = payload.members?.length
+    ? payload.members
+    : [{ id: state.user?.id, name: state.user?.name, email: state.user?.email, role: "owner", status: "active" }];
+  const canManage = OnLead._teamPayload ? Boolean(payload.canManage) : !state.user?.teamOwnerId;
   const roleLabel = (r) => (r === "owner" ? "Владелец" : r === "admin" ? "Админ" : "Участник");
+  const statusLabel = (s) => (s === "pending" ? "Ожидает" : "Активен");
+  const statusClass = (s) => (s === "pending" ? "chip-warn" : "chip-ok");
+  const rows = members.map((m) => {
+    const actions = canManage && m.role !== "owner"
+      ? `<td class="team-actions">
+          ${m.status === "active" ? `<select class="team-role" data-id="${esc(m.id)}" aria-label="Роль">
+            <option value="admin"${m.role === "admin" ? " selected" : ""}>Админ</option>
+            <option value="member"${m.role === "member" ? " selected" : ""}>Участник</option>
+          </select>` : `<span class="muted">—</span>`}
+          <button type="button" class="btn ghost sm team-remove" data-id="${esc(m.id)}" data-label="${esc(m.email)}">Удалить</button>
+        </td>`
+      : `<td>${canManage ? "" : '<span class="muted">—</span>'}</td>`;
+    return `<tr data-member-id="${esc(m.id)}">
+      <td>${esc(m.name || "—")}</td>
+      <td>${esc(m.email || "—")}</td>
+      <td><span class="chip">${esc(roleLabel(m.role))}</span></td>
+      <td><span class="chip ${statusClass(m.status || "active")}">${esc(statusLabel(m.status || "active"))}</span></td>
+      ${actions}
+    </tr>`;
+  }).join("");
+  const inviteBlock = canManage
+    ? `<div class="card cab-team-invite">
+        <h3>Пригласить участника</h3>
+        <p class="muted">Email должен совпадать с аккаунтом при регистрации по ссылке-приглашению.</p>
+        <form id="team-invite-form" class="cab-add team-invite-row">
+          <label class="field"><span>Email</span><input type="email" name="email" required placeholder="colleague@company.ru" /></label>
+          <label class="field"><span>Роль</span>
+            <select name="role"><option value="member">Участник</option><option value="admin">Админ</option></select>
+          </label>
+          <button type="submit" class="btn primary">Пригласить</button>
+        </form>
+        <div id="team-invite-result" class="muted" hidden></div>
+      </div>`
+    : `<p class="muted">Управление командой доступно только владельцу аккаунта.</p>`;
+  const actionHead = canManage ? "<th></th>" : "";
   return `<div class="cab-ol">
     ${nav}
     <div class="h-row"><div><p class="cab-kicker">Кабинет</p><h1>Команда</h1>
-      <p class="muted">Участники аккаунта и их роли.</p></div></div>
-    <table class="table"><thead><tr><th>Имя</th><th>Email</th><th>Роль</th></tr></thead>
-      <tbody>${members.map((m) => `<tr><td>${esc(m.name || "—")}</td><td>${esc(m.email || "—")}</td><td><span class="chip">${esc(roleLabel(m.role))}</span></td></tr>`).join("")}</tbody></table>
+      <p class="muted">Участники аккаунта, роли и приглашения.</p></div></div>
+    ${inviteBlock}
+    <table class="table team-table"><thead><tr><th>Имя</th><th>Email</th><th>Роль</th><th>Статус</th>${actionHead}</tr></thead>
+      <tbody>${rows || `<tr><td colspan="${canManage ? 5 : 4}" class="muted">Нет участников</td></tr>`}</tbody></table>
   </div>`;
 };
 
@@ -246,16 +284,14 @@ OnLead.bindCabinetOl = function bindCabinetOl() {
   OnLead.loadAnalyticsDetail?.();
   const teamPath = (OnLead.hashRouteRaw?.() || location.hash.replace(/^#/, "") || "/").replace(/#.*$/, "");
   if (teamPath === "/office/team") {
-    OnLead.api("/api/team").then((r) => {
-      OnLead._teamMembers = r.members || [];
-      const tbody = document.querySelector(".cab-ol .table tbody");
-      if (!tbody) return;
-      const esc = OnLead.esc || ((s) => String(s ?? ""));
-      const roleLabel = (role) => (role === "owner" ? "Владелец" : role === "admin" ? "Админ" : "Участник");
-      tbody.innerHTML = (OnLead._teamMembers.length ? OnLead._teamMembers : []).map((m) =>
-        `<tr><td>${esc(m.name || "—")}</td><td>${esc(m.email || "—")}</td><td><span class="chip">${esc(roleLabel(m.role))}</span></td></tr>`,
-      ).join("");
-    }).catch(() => {});
+    OnLead.bindTeamOlEvents?.();
+    if (!OnLead._teamPayload) {
+      OnLead.api("/api/team").then((r) => {
+        OnLead._teamPayload = r;
+        OnLead._teamMembers = r.members || [];
+        return render?.();
+      }).catch(() => {});
+    }
   }
   document.getElementById("cab-settings-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -305,4 +341,73 @@ OnLead.bindCabinetOl = function bindCabinetOl() {
   addListItem("cab-add-sig", "signatures");
   addListItem("cab-add-qa", "quickAnswers");
   addListItem("cab-add-wm", "watermarks");
+};
+
+OnLead.refreshTeamPage = async function refreshTeamPage() {
+  try {
+    const r = await OnLead.api("/api/team");
+    OnLead._teamPayload = r;
+    OnLead._teamMembers = r.members || [];
+    await render?.();
+  } catch (err) {
+    OnLead._flash = err?.message || "Не удалось загрузить команду";
+  }
+};
+
+OnLead.bindTeamOlEvents = function bindTeamOlEvents() {
+  const form = document.getElementById("team-invite-form");
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const out = document.getElementById("team-invite-result");
+    try {
+      const r = await OnLead.api("/api/team/invite", {
+        method: "POST",
+        body: { email: fd.get("email"), role: fd.get("role") || "member" },
+      });
+      if (out) {
+        out.hidden = false;
+        out.textContent = r.inviteLink
+          ? `Приглашение создано. Ссылка: ${r.inviteLink}`
+          : (r.added ? "Участник добавлен в команду." : "Готово.");
+      }
+      form.reset();
+      OnLead._flash = r.added ? "Участник добавлен" : "Приглашение отправлено";
+      await OnLead.refreshTeamPage();
+    } catch (err) {
+      if (out) {
+        out.hidden = false;
+        out.textContent = err?.message || "Не удалось пригласить";
+      }
+    }
+  });
+  document.querySelectorAll(".team-role").forEach((sel) => {
+    sel.addEventListener("change", async () => {
+      const id = sel.dataset.id;
+      try {
+        await OnLead.api(`/api/team/members/${encodeURIComponent(id)}`, {
+          method: "PATCH",
+          body: { role: sel.value },
+        });
+        OnLead._flash = "Роль обновлена";
+      } catch (err) {
+        OnLead._flash = err?.message || "Ошибка";
+        await OnLead.refreshTeamPage();
+      }
+    });
+  });
+  document.querySelectorAll(".team-remove").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const label = btn.dataset.label || "участника";
+      if (!confirm(`Удалить ${label} из команды?`)) return;
+      try {
+        await OnLead.api(`/api/team/members/${encodeURIComponent(id)}`, { method: "DELETE" });
+        OnLead._flash = "Удалено";
+        await OnLead.refreshTeamPage();
+      } catch (err) {
+        OnLead._flash = err?.message || "Ошибка";
+      }
+    });
+  });
 };
