@@ -98,6 +98,10 @@ SQLite schema v10 is intentional for the current single-node VPS footprint
 (backups to local offsite + S3). **Postgres / HA** is deferred until load or
 availability requirements outgrow one node — not a go-live blocker.
 
+Do not start a Postgres migration without: sustained write pressure, multi-node
+need, or an explicit ops decision. Until then keep hourly offsite + S3 restores
+tested (`scripts/restore-store.sh`).
+
 ## Service audit
 
 `/api/health` only reports configuration. To check that every service actually
