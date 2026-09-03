@@ -1,5 +1,5 @@
 /**
- * Office click + tool form handlers (extracted from app.js)
+ * Office click dispatcher + tool form (domain acts in click-*-ol.js)
  */
 window.OnLead = window.OnLead || {};
 
@@ -11,6 +11,11 @@ OnLead.onClick = async function onClick(e) {
   if (btn.tagName === "BUTTON") e.preventDefault();
   const act = btn.dataset.act;
   try {
+
+    const domainHandlers = [OnLead.clickBilling, OnLead.clickLeadgen, OnLead.clickTelegram, OnLead.clickLandings];
+    for (const h of domainHandlers) {
+      if (typeof h === "function" && await h(act, btn, e)) return;
+    }
     if (act === "logout") {
       OnLead._lgChecked = undefined;
       OnLead._lgLoadedGroups = null;
@@ -27,20 +32,13 @@ OnLead.onClick = async function onClick(e) {
       OnLead.setLkNav(false);
       return;
     }
-    if (act === "topup") {
-      await OnLead.startCheckout({ kind: "topup", amount: Number(btn.dataset.amount || 1000) }, btn);
-      return;
-    }
+    
     if (act === "dash-chart") {
       OnLead._chartDays = Number(btn.dataset.days || 30);
       await OnLead.render();
       return;
     }
-    if (act === "sub-period") {
-      OnLead._packMonths = Number(btn.dataset.m || 1);
-      await OnLead.render();
-      return;
-    }
+    
     if (act === "promo-hide") {
       try { localStorage.setItem("onlead-promo-hide", "1"); } catch { /* ignore */ }
       await OnLead.render();
@@ -51,32 +49,8 @@ OnLead.onClick = async function onClick(e) {
       await OnLead.render();
       return;
     }
-    if (act === "transfer-ref") {
-      await OnLead.api("/api/billing/transfer-ref", { method: "POST", body: { amount: "all" } });
-      OnLead._flash = "Реферальный баланс переведён на основной счёт.";
-      await OnLead.refresh();
-      await OnLead.render();
-      return;
-    }
-    if (act === "resume-pay") {
-      const kind = btn.dataset.kind || "topup";
-      const body = { kind, method: "yookassa" };
-      if (kind === "topup") body.amount = Number(btn.dataset.amount || 1000);
-      if (kind === "package") {
-        body.packageId = btn.dataset.package;
-        body.months = Number(btn.dataset.m || 1);
-      }
-      if (kind === "tool") {
-        body.slug = btn.dataset.slug;
-        body.months = Number(btn.dataset.m || 1);
-      }
-      if (kind === "tg-plan") {
-        body.tgPlan = btn.dataset.tgplan;
-        body.months = Number(btn.dataset.m || 1);
-      }
-      await OnLead.startCheckout(body, btn);
-      return;
-    }
+    
+    
     if (act === "copy") {
       navigator.clipboard?.writeText(btn.dataset.text || "");
       btn.textContent = "Скопировано";
@@ -108,94 +82,27 @@ OnLead.onClick = async function onClick(e) {
       await OnLead.api("/api/accounts", { method: "POST", body: { token: "mock:vk" } });
       await OnLead.render(); return;
     }
-    if (act === "lg-save-cfg") { await OnLead.saveLeadgenCfg(); return; }
-    if (act === "lg-scan") { await OnLead.startLeadgenScan(); return; }
-    if (act === "lg-load-groups") { await OnLead.loadLeadgenGroups(); return; }
-    if (act === "lg-save-groups") {
-      await OnLead.saveLeadgenGroups(true);
-      document.getElementById("lg-groups-modal")?.setAttribute("hidden", "");
-      return;
-    }
-    if (act === "lg-del-phrase") { await OnLead.removeLeadgenPhrase(btn.dataset.id); return; }
-    if (act === "lg-del-exclude") { await OnLead.removeLeadgenExclude(btn.dataset.text); return; }
-    if (act === "lg-niche") { await OnLead.addLeadgenNiche(btn.dataset.id); return; }
-    if (act === "lg-save-match") {
-      await OnLead.api("/api/leadgen/matches/" + btn.dataset.id, { method: "PATCH", body: { saveToCrm: true } });
-      await OnLead.render(); return;
-    }
-    if (act === "lg-del-match") {
-      await OnLead.api("/api/leadgen/matches/" + btn.dataset.id, { method: "PATCH", body: { status: "dismissed" } });
-      await OnLead.render(); return;
-    }
-    if (act === "lg-restore-match") {
-      await OnLead.api("/api/leadgen/matches/" + btn.dataset.id, { method: "PATCH", body: { status: "new" } });
-      await OnLead.render(); return;
-    }
-    if (act === "lg-filter") {
-      OnLead._lgFilter = OnLead._lgFilter || { status: "", kind: "", phrase: "", author: "" };
-      OnLead._lgFilter[btn.dataset.key] = btn.dataset.val;
-      await OnLead.render(); return;
-    }
-    if (act === "lg-apply-filters") {
-      OnLead._lgFilter = OnLead._lgFilter || { status: "", kind: "", phrase: "", author: "" };
-      OnLead._lgFilter.phrase = document.getElementById("lg-filter-phrase")?.value || "";
-      OnLead._lgFilter.author = document.getElementById("lg-filter-author")?.value || "";
-      await OnLead.render(); return;
-    }
-    if (act === "lg-toggle-enabled") {
-      await OnLead.api("/api/leadgen", { method: "PATCH", body: { enabled: btn.dataset.val === "1" } });
-      await OnLead.refresh();
-      await OnLead.render(); return;
-    }
-    if (act === "lg-mark-saved") {
-      await OnLead.api("/api/leadgen/matches/" + btn.dataset.id, { method: "PATCH", body: { status: "saved" } });
-      await OnLead.render(); return;
-    }
-    if (act === "lg-delete-match") {
-      if (!confirm("Удалить совпадение безвозвратно?")) return;
-      await OnLead.api("/api/leadgen/matches/" + btn.dataset.id, { method: "DELETE" });
-      await OnLead.render(); return;
-    }
-    if (act === "lg-expand-match") {
-      OnLead._lgExpanded = OnLead._lgExpanded === btn.dataset.id ? null : btn.dataset.id;
-      await OnLead.render(); return;
-    }
-    if (act === "lg-ai-score") {
-      btn.disabled = true;
-      try {
-        await OnLead.api("/api/leadgen/matches/" + btn.dataset.id + "/ai-score", { method: "POST" });
-        await OnLead.refresh();
-        OnLead._lgExpanded = btn.dataset.id;
-        await OnLead.render();
-      } catch (err) { alert(err.message); }
-      finally { btn.disabled = false; }
-      return;
-    }
-    if (act === "lg-ai-draft") {
-      btn.disabled = true;
-      try {
-        await OnLead.api("/api/leadgen/matches/" + btn.dataset.id + "/ai-draft", { method: "POST" });
-        await OnLead.refresh();
-        OnLead._lgExpanded = btn.dataset.id;
-        await OnLead.render();
-      } catch (err) { alert(err.message); }
-      finally { btn.disabled = false; }
-      return;
-    }
-    if (act === "lg-copy-draft") {
-      await navigator.clipboard?.writeText(btn.dataset.text || "");
-      btn.textContent = "Скопировано";
-      return;
-    }
-    if (act === "lg-open-groups") {
-      document.getElementById("lg-groups-modal")?.removeAttribute("hidden");
-      await OnLead.loadLeadgenGroups();
-      return;
-    }
-    if (act === "lg-close-groups") {
-      document.getElementById("lg-groups-modal")?.setAttribute("hidden", "");
-      return;
-    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     if (act === "nc-tab") {
       OnLead._ncTab = btn.dataset.tab || "settings";
       OnLead._ncDialogId = "";
@@ -336,135 +243,22 @@ OnLead.onClick = async function onClick(e) {
       }
       return;
     }
-    if (act === "tg-funnel-tab") {
-      OnLead._tgFunnelTab = btn.dataset.tab || "products";
-      OnLead._tgFunnelCacheId = null;
-      await OnLead.render();
-      return;
-    }
-    if (act === "tg-product-save") {
-      const fid = btn.dataset.fid;
-      const pid = btn.dataset.pid;
-      const body = OnLead.tgProductCollect ? OnLead.tgProductCollect() : {};
-      if (pid) {
-        await OnLead.api("/api/tg/funnels/" + fid + "/products/" + pid, { method: "PATCH", body });
-      } else {
-        await OnLead.api("/api/tg/funnels/" + fid + "/products", { method: "POST", body });
-      }
-      OnLead._tgProductDraft = null;
-      OnLead._tgFunnelCacheId = null;
-      await OnLead.render();
-      return;
-    }
-    if (act === "tg-product-edit") {
-      try { OnLead._tgProductDraft = JSON.parse(btn.dataset.json || "{}"); } catch { OnLead._tgProductDraft = {}; }
-      await OnLead.render();
-      return;
-    }
-    if (act === "tg-product-cancel") {
-      OnLead._tgProductDraft = null;
-      await OnLead.render();
-      return;
-    }
-    if (act === "tg-product-toggle") {
-      await OnLead.api("/api/tg/funnels/" + btn.dataset.fid + "/products/" + btn.dataset.pid, {
-        method: "PATCH",
-        body: { active: btn.dataset.active === "1" },
-      });
-      OnLead._tgFunnelCacheId = null;
-      await OnLead.render();
-      return;
-    }
-    if (act === "tg-product-del") {
-      if (!OnLead.confirmDel("товар")) return;
-      await OnLead.api("/api/tg/funnels/" + btn.dataset.fid + "/products/" + btn.dataset.pid, { method: "DELETE" });
-      OnLead._tgFunnelCacheId = null;
-      await OnLead.render();
-      return;
-    }
-    if (act === "lb-tab") {
-      OnLead._lbTab = btn.dataset.tab || "list";
-      await OnLead.render();
-      return;
-    }
-    if (act === "lb-pick-kind") {
-      OnLead._lbKind = btn.dataset.kind || "lead";
-      await OnLead.render();
-      return;
-    }
-    if (act === "lb-create") {
-      const r = await OnLead.api("/api/lead-bots", {
-        method: "POST",
-        body: {
-          kind: OnLead._lbKind || "lead",
-          business: document.getElementById("lb-business")?.value || "",
-          city: document.getElementById("lb-city")?.value || "",
-          goal: document.getElementById("lb-goal")?.value || "",
-          contact: document.getElementById("lb-contact")?.value || "",
-        },
-      });
-      OnLead._lbTab = "list";
-      if (r.kind === "widget") {
-        const sn = await OnLead.api("/api/lead-bots/" + r.id + "/widget-snippet");
-        OnLead._lbSnippet = sn.snippet || "";
-      }
-      await OnLead.refresh();
-      await OnLead.render();
-      return;
-    }
-    if (act === "lb-snippet") {
-      const sn = await OnLead.api("/api/lead-bots/" + btn.dataset.id + "/widget-snippet");
-      OnLead._lbSnippet = sn.snippet || "";
-      await OnLead.render();
-      return;
-    }
-    if (act === "lb-snippet-close") {
-      OnLead._lbSnippet = "";
-      await OnLead.render();
-      return;
-    }
-    if (act === "lb-copy-snippet") {
-      const ta = document.querySelector(".tg-snippet-ta");
-      if (ta) {
-        ta.select();
-        try { document.execCommand("copy"); OnLead._flash = "Сниппет скопирован"; } catch { /* ignore */ }
-      }
-      return;
-    }
-    if (act === "lb-funnel") {
-      const r = await OnLead.api("/api/lead-bots/" + btn.dataset.id + "/deploy-funnel", { method: "POST" });
-      OnLead._flash = "Воронка создана из сценария";
-      await OnLead.refresh();
-      if (r.funnel?.id) OnLead.go("/office/telegram/funnels/" + r.funnel.id);
-      else await OnLead.render();
-      return;
-    }
-    if (act === "lb-del") {
-      if (!OnLead.confirmDel(btn.dataset.name || "бот")) return;
-      await OnLead.api("/api/lead-bots/" + btn.dataset.id, { method: "DELETE" });
-      await OnLead.refresh();
-      await OnLead.render();
-      return;
-    }
-    if (act === "lg-save-notify") {
-      const excludes = String(document.getElementById("lg-excludes")?.value || "")
-        .split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
-      await OnLead.api("/api/leadgen", {
-        method: "PATCH",
-        body: {
-          notifyEmail: !!document.getElementById("lg-notify-email")?.checked,
-          notifyTelegram: !!document.getElementById("lg-notify-tg")?.checked,
-          telegramChatId: document.getElementById("lg-tg-chat")?.value || "",
-          excludePhrases: excludes,
-        },
-      });
-      OnLead._flash = "Настройки уведомлений сохранены";
-      await OnLead.render(); return;
-    }
-    if (act === "lg-groups-all" || act === "lg-groups-none") {
-      OnLead.applyLeadgenGroupChecks(act === "lg-groups-all");
-      return;
-    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     if (act === "list-del") {
       if (!OnLead.confirmDel(btn.dataset.name || "список")) return;
       await OnLead.api("/api/lists/" + btn.dataset.id, { method: "DELETE" });
@@ -499,110 +293,17 @@ OnLead.onClick = async function onClick(e) {
       await OnLead.api("/api/accounts/" + btn.dataset.id, { method: "DELETE" });
       await OnLead.render(); return;
     }
-    if (act === "buy-pack") {
-      await OnLead.startCheckout({
-        packageId: btn.dataset.id,
-        months: Number(btn.dataset.m || 1),
-        amount: Number(btn.dataset.amount || 0),
-      }, btn);
-      return;
-    }
-    if (act === "buy-tool") {
-      await OnLead.startCheckout({ slug: btn.dataset.slug, months: Number(btn.dataset.m || 1), amount: Number(btn.dataset.amount || 0) }, btn);
-      return;
-    }
-    if (act === "buy-tg") {
-      await OnLead.startCheckout({ kind: "tg-plan", tgPlan: btn.dataset.plan, months: Number(btn.dataset.m || 1), amount: Number(btn.dataset.amount || 0) }, btn);
-      return;
-    }
-    if (act === "tg-trial") {
-      await OnLead.api("/api/tg/trial", { method: "POST" });
-      OnLead._flash = "Три дня Telegram включены: 1 слот Lite.";
-      await OnLead.render();
-      return;
-    }
-    if (act === "new-landing") {
-      await OnLead.createLanding(btn.dataset.name || "Новая страница", btn.dataset.template || "");
-      return;
-    }
-    if (act === "ol-save-landing") {
-      await OnLead.saveOlLandingEditor();
-      return;
-    }
-    if (act === "ol-ai-generate") {
-      const editor = document.querySelector(".ol-editor");
-      const id = editor?.dataset.id;
-      if (!id) return;
-      const business = document.getElementById("ol-ai-business")?.value || "";
-      const city = document.getElementById("ol-ai-city")?.value || "";
-      btn.disabled = true;
-      try {
-        await OnLead.api("/api/landings/" + id + "/generate", { method: "POST", body: { business, city } });
-        OnLead._flash = "AI переписал тексты — проверьте блоки и сохраните.";
-        await OnLead.refresh();
-        await OnLead.render();
-      } catch (err) {
-        alert(err.message);
-      } finally {
-        btn.disabled = false;
-      }
-      return;
-    }
-    if (act === "ol-preview-toggle") {
-      const box = document.getElementById("ol-preview-box");
-      const editor = document.querySelector(".ol-editor");
-      if (!box || !editor) return;
-      const open = box.hasAttribute("hidden");
-      if (open) {
-        const page = (OnLead.load().landings || []).find((p) => p.id === editor.dataset.id) || {};
-        const content = OnLead.collectLandingOlContent(editor, page);
-        box.innerHTML = OnLead.landingOlPublicHtml({ ...page, content }, { preview: true });
-        box.removeAttribute("hidden");
-        btn.textContent = "Скрыть предпросмотр";
-      } else {
-        box.setAttribute("hidden", "");
-        box.innerHTML = "";
-        btn.textContent = "Предпросмотр";
-      }
-      return;
-    }
-    if (act === "publish-landing") {
-      const olEd = document.querySelector(".ol-editor");
-      let body = { status: btn.dataset.status };
-      if (olEd) {
-        const page = (OnLead.load().landings || []).find((p) => p.id === olEd.dataset.id) || {};
-        const content = OnLead.collectLandingOlContent(olEd, page);
-        const pro = OnLead.collectOlProFields ? OnLead.collectOlProFields(olEd) : {};
-        body = {
-          name: document.getElementById("ol-title")?.value || page.name,
-          slug: document.getElementById("ol-slug")?.value || page.slug,
-          seoDescription: document.getElementById("ol-seo")?.value || "",
-          content,
-          ...pro,
-          status: btn.dataset.status,
-        };
-      } else {
-        const form = $("#landing-edit-form");
-        if (form) body = { ...landingFromForm(form), status: btn.dataset.status };
-      }
-      await OnLead.api("/api/landings/" + btn.dataset.id, { method: "PATCH", body });
-      OnLead._flash = btn.dataset.status === "published" ? "Страница опубликована — можно делиться ссылкой." : "Страница снята с публикации.";
-      await OnLead.render();
-      return;
-    }
-    if (act === "copy-landing-url") {
-      await navigator.clipboard?.writeText(btn.dataset.url || "");
-      btn.textContent = "Скопировано";
-      return;
-    }
-    if (act === "del-landing") {
-      if (!OnLead.confirmDel(btn.dataset.name || "страницу")) return;
-      await OnLead.api("/api/landings/" + btn.dataset.id, { method: "DELETE" });
-      OnLead._flash = "Страницу удалили.";
-      OnLead.go("/office/landings");
-      await OnLead.render();
-      return;
-    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     if (act === "crm-pick") {
       OnLead._crmSelectedId = btn.dataset.id;
       await OnLead.render();
@@ -956,115 +657,24 @@ OnLead.onClick = async function onClick(e) {
       await OnLead.render();
       return;
     }
-    if (act === "add-bot") {
-      return;
-    }
-    if (act === "edit-bot") {
-      const name = prompt("Название", btn.dataset.name || "");
-      if (name == null) return;
-      await OnLead.api("/api/bots/" + btn.dataset.id, { method: "PATCH", body: { name: name.trim() } });
-      await OnLead.render();
-      return;
-    }
-    if (act === "retoken-bot") {
-      const token = prompt("Новый токен из @BotFather", "");
-      if (token == null || !token.trim()) return;
-      try {
-        await OnLead.api("/api/bots/" + btn.dataset.id, { method: "PATCH", body: { token: token.trim() } });
-        OnLead._flash = "Токен обновлён, webhook переустановлен.";
-      } catch (err) {
-        alert(err.message);
-      }
-      await OnLead.render();
-      return;
-    }
-    if (act === "toggle-bot") {
-      await OnLead.api("/api/bots/" + btn.dataset.id, { method: "PATCH", body: { status: btn.dataset.status } });
-      await OnLead.render();
-      return;
-    }
-    if (act === "del-bot") {
-      if (!OnLead.confirmDel(btn.dataset.name || "бота")) return;
-      await OnLead.api("/api/bots/" + btn.dataset.id, { method: "DELETE" });
-      await OnLead.render();
-      return;
-    }
-    if (act === "refresh-tg-channels") {
-      const res = await OnLead.api("/api/tg/channels/refresh", { method: "POST" });
-      OnLead._flash = res.added ? `Добавлено каналов: ${res.added}` : (res.found ? "Список обновлён, новых каналов нет." : "Telegram не прислал каналы. Сделайте бота админом и напишите в канал, затем обновите снова.");
-      await OnLead.render();
-      return;
-    }
-    if (act === "add-tg-channel") {
-      const username = prompt("Канал (@name или ссылка)", "@onlead_channel");
-      if (!username) return;
-      await OnLead.api("/api/tg/channels", { method: "POST", body: { username, name: username } });
-      await OnLead.render();
-      return;
-    }
-    if (act === "edit-tg-channel") {
-      const name = prompt("Название", btn.dataset.name || "");
-      if (name == null) return;
-      const username = prompt("Username", btn.dataset.username || "");
-      if (username == null) return;
-      await OnLead.api("/api/tg/channels/" + btn.dataset.id, { method: "PATCH", body: { name: name.trim(), username: username.trim() } });
-      await OnLead.render();
-      return;
-    }
-    if (act === "toggle-tg-channel") {
-      await OnLead.api("/api/tg/channels/" + btn.dataset.id, { method: "PATCH", body: { status: btn.dataset.status } });
-      await OnLead.render();
-      return;
-    }
-    if (act === "del-tg-channel") {
-      if (!OnLead.confirmDel(btn.dataset.name || "канал")) return;
-      await OnLead.api("/api/tg/channels/" + btn.dataset.id, { method: "DELETE" });
-      await OnLead.render();
-      return;
-    }
-    if (act === "add-funnel") {
-      return;
-    }
-    if (act === "new-funnel") {
-      const sc = OnLead.tgScenario(btn.dataset.scenario);
-      if (!sc) return;
-      const row = await OnLead.api("/api/tg/funnels", {
-        method: "POST",
-        body: { name: sc.name, scenario: sc.id, kind: sc.kind, sections: sc.sections },
-      });
-      OnLead.go("/office/telegram/funnels/" + row.id);
-      await OnLead.render();
-      return;
-    }
-    if (act === "funnel-add-section") {
-      document.getElementById("funnel-sections")?.insertAdjacentHTML("beforeend", OnLead.funnelSecHtml({ title: "Новый раздел", text: "", buttons: "" }));
-      return;
-    }
-    if (act === "funnel-del-section") {
-      btn.closest(".funnel-sec")?.remove();
-      return;
-    }
-    if (act === "archive-funnel") {
-      await OnLead.api("/api/tg/funnels/" + btn.dataset.id, { method: "PATCH", body: { status: "archive" } });
-      await OnLead.render();
-      return;
-    }
-    if (act === "edit-funnel") {
-      OnLead.go("/office/telegram/funnels/" + btn.dataset.id);
-      return;
-    }
-    if (act === "toggle-funnel") {
-      await OnLead.api("/api/tg/funnels/" + btn.dataset.id, { method: "PATCH", body: { status: btn.dataset.status } });
-      await OnLead.render();
-      return;
-    }
-    if (act === "del-funnel") {
-      if (!OnLead.confirmDel(btn.dataset.name || "воронку")) return;
-      await OnLead.api("/api/tg/funnels/" + btn.dataset.id, { method: "DELETE" });
-      if (location.hash.includes("/funnels/")) OnLead.go("/office/telegram/funnels");
-      await OnLead.render();
-      return;
-    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     if (act === "pause-cam") {
       await OnLead.api("/api/campaigns/" + btn.dataset.id + "/pause", { method: "POST" });
       await OnLead.render(); return;
@@ -1131,19 +741,8 @@ OnLead.onClick = async function onClick(e) {
       await OnLead.loadToolExtras("chat-manager-vk");
       return;
     }
-    if (act === "confirm-receipt") {
-      await OnLead.api("/api/tg/receipts/" + btn.dataset.id + "/confirm", { method: "POST" });
-      await OnLead.refresh();
-      OnLead._flash = "Оплата подтверждена, клиенту отправлено сообщение";
-      await OnLead.loadTgReceipts();
-      return;
-    }
-    if (act === "reject-receipt") {
-      const note = prompt("Причина отклонения (необязательно)", "") ?? "";
-      await OnLead.api("/api/tg/receipts/" + btn.dataset.id + "/reject", { method: "POST", body: { note } });
-      await OnLead.loadTgReceipts();
-      return;
-    }
+    
+    
   } catch (err) { alert(err.message); }
 }
 
@@ -1173,4 +772,3 @@ OnLead.onToolSubmit = async function onToolSubmit(e) {
   }
 }
 OnLead.handleOfficeClick = OnLead.onClick;
-

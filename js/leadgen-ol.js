@@ -356,3 +356,256 @@ OnLead.lgFilterBtn = function lgFilterBtn(key, val, label, current) {
   const on = (current || "") === val ? "on" : "";
   return `<button type="button" class="btn btn-ghost btn-sm ${on}" data-act="lg-filter" data-key="${OnLead.esc(key)}" data-val="${OnLead.esc(val)}">${label}</button>`;
 }
+
+/* --- binders / API helpers --- */
+OnLead.saveLeadgenCfg = async function saveLeadgenCfg() {
+  await OnLead.api("/api/leadgen", {
+    method: "PATCH",
+    body: {
+      accountId: $("#lg-account")?.value || null,
+      scanTarget: $("#lg-target")?.value || "all",
+      scanIntervalMin: Number($("#lg-interval")?.value || 30),
+      postsLimit: Number($("#lg-posts")?.value || 20),
+      commentsPerPost: Number($("#lg-comments")?.value || 20),
+    },
+  });
+  const status = $("#lg-status");
+  if (status) status.textContent = "Настройки сохранены";
+}
+
+OnLead.collectedLeadgenGroups = function collectedLeadgenGroups() {
+  OnLead.syncLeadgenCheckedFromDom();
+  const byId = new Map();
+  document.querySelectorAll("#lg-group-list input[data-gid]").forEach((el) => {
+    const id = OnLead.lgNormId(el.dataset.gid);
+    if (!id || !el.checked) return;
+    byId.set(id, {
+      externalGroupId: id,
+      name: el.dataset.gname,
+      screenName: el.dataset.gsn,
+    });
+  });
+  return [...byId.values()];
+}
+
+OnLead.updateLeadgenGroupCount = function updateLeadgenGroupCount() {
+  const el = $("#lg-group-count");
+  if (!el) return;
+  const all = document.querySelectorAll("#lg-group-list input[data-gid]").length;
+  const n = document.querySelectorAll("#lg-group-list input[data-gid]:checked").length;
+  el.textContent = all ? `Выбрано: ${n} из ${all}. Выбор сохраняется сам.` : "Нажмите «Загрузить из VK» — подтянутся сообщества аккаунта.";
+}
+
+OnLead.filterLeadgenGroups = function filterLeadgenGroups(q) {
+  const needle = String(q || "").trim().toLowerCase();
+  document.querySelectorAll("#lg-group-list .lg-check").forEach((el) => {
+    const name = (el.dataset.gname || el.textContent || "").toLowerCase();
+    el.style.display = !needle || name.includes(needle) ? "" : "none";
+  });
+}
+
+OnLead.setLeadgenGroupControls = function setLeadgenGroupControls(hasGroups) {
+  const on = OnLead.toolOn(OnLead.load(), "leadgen-vk");
+  const q = $("#lg-group-q");
+  if (q) q.disabled = !hasGroups;
+  document.querySelectorAll("[data-act=lg-groups-all],[data-act=lg-groups-none]").forEach((b) => {
+    b.disabled = !on || !hasGroups;
+  });
+}
+
+OnLead.applyLeadgenGroupChecks = function applyLeadgenGroupChecks(check) {
+  const set = OnLead.leadgenCheckedSet();
+  document.querySelectorAll("#lg-group-list input[data-gid]").forEach((inp) => {
+    inp.checked = check;
+    const id = OnLead.lgNormId(inp.dataset.gid);
+    if (!id) return;
+    if (check) set.add(id);
+    else set.delete(id);
+  });
+  OnLead.updateLeadgenGroupCount();
+  OnLead.scheduleLeadgenGroupsSave();
+}
+
+OnLead.nextLeadgenSaveGen = function nextLeadgenSaveGen() {
+  OnLead._lgSaveGen = (Number(OnLead._lgSaveGen) || 0) + 1;
+  return OnLead._lgSaveGen;
+}
+
+OnLead.scheduleLeadgenGroupsSave = function scheduleLeadgenGroupsSave() {
+  clearTimeout(OnLead._lgSaveTimer);
+  const gen = OnLead.nextLeadgenSaveGen();
+  OnLead._lgSaveTimer = setTimeout(() => {
+    if (!document.querySelector("#lg-group-list input[data-gid]")) return;
+    OnLead.saveLeadgenGroups(false, gen).catch((err) => {
+      const status = $("#lg-status");
+      if (status) status.textContent = err.message;
+    });
+  }, 500);
+}
+
+OnLead.bindLeadgenUi = function bindLeadgenUi() {
+  const q = $("#lg-group-q");
+  const list = $("#lg-group-list");
+  if (!q && !list) return;
+  if (q) {
+    q.value = OnLead._lgGroupQ || "";
+    OnLead.filterLeadgenGroups(q.value);
+    q.addEventListener("input", () => {
+      OnLead._lgGroupQ = q.value;
+      OnLead.filterLeadgenGroups(q.value);
+    });
+  }
+  if (list) {
+    if (OnLead._lgListScroll) list.scrollTop = OnLead._lgListScroll;
+    list.addEventListener("scroll", () => { OnLead._lgListScroll = list.scrollTop; }, { passive: true });
+    list.addEventListener("change", () => {
+      OnLead.syncLeadgenCheckedFromDom();
+      OnLead.updateLeadgenGroupCount();
+      OnLead.scheduleLeadgenGroupsSave();
+    });
+  }
+  OnLead.setLeadgenGroupControls(!!list?.querySelector("input[data-gid]"));
+  const allBtn = document.querySelector("[data-act=lg-groups-all]");
+  const noneBtn = document.querySelector("[data-act=lg-groups-none]");
+  allBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    OnLead.applyLeadgenGroupChecks(true);
+  });
+  noneBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    OnLead.applyLeadgenGroupChecks(false);
+  });
+}
+
+OnLead.saveLeadgenGroups = async function saveLeadgenGroups(refresh = true, gen) {
+  const my = gen == null ? OnLead.nextLeadgenSaveGen() : gen;
+  const groups = OnLead.collectedLeadgenGroups();
+  await OnLead.api("/api/leadgen/groups", { method: "PUT", body: { groups } });
+  if (my !== OnLead._lgSaveGen) return;
+  const state = OnLead.load();
+  if (state?.leadgen) state.leadgen.groups = groups;
+  const status = $("#lg-status");
+  if (status) status.textContent = `Сохранено сообществ: ${groups.length}`;
+  if (refresh === true) await OnLead.render();
+}
+
+OnLead.loadLeadgenGroups = async function loadLeadgenGroups() {
+  const status = $("#lg-status");
+  if (status) status.textContent = "Загружаем сообщества…";
+  try {
+    await OnLead.saveLeadgenCfg();
+    const list = await OnLead.api("/api/leadgen/groups");
+    OnLead._lgLoadedGroups = (list || []).map((g) => ({
+      id: OnLead.lgNormId(g.id),
+      name: g.name,
+      screenName: g.screenName || "",
+    }));
+    const selected = OnLead.leadgenCheckedSet();
+    const box = $("#lg-group-list");
+    if (!box) return;
+    box.innerHTML = OnLead._lgLoadedGroups.length
+      ? OnLead._lgLoadedGroups.map((g) => OnLead.leadgenGroupRowHtml(g, selected.has(OnLead.lgNormId(g.id)))).join("")
+      : `<span class="muted">VK не вернул группы</span>`;
+    OnLead.setLeadgenGroupControls(!!OnLead._lgLoadedGroups.length);
+    const q = $("#lg-group-q");
+    OnLead.filterLeadgenGroups(OnLead._lgGroupQ || q?.value || "");
+    OnLead.updateLeadgenGroupCount();
+    if (status) status.textContent = `Загружено сообществ: ${OnLead._lgLoadedGroups.length}`;
+  } catch (err) {
+    if (status) status.textContent = err.message;
+    else alert(err.message);
+  }
+}
+
+OnLead.onLeadgenAddPhrase = async function onLeadgenAddPhrase(e) {
+  e.preventDefault();
+  const phrase = String(new FormData(e.target).get("phrase") || "").trim();
+  if (!phrase) return;
+  const phrases = [...(OnLead.load().leadgen?.phrases || [])];
+  if (!phrases.some((p) => p.phrase.toLowerCase() === phrase.toLowerCase())) {
+    phrases.push({ phrase, caseInsensitive: true });
+  }
+  await OnLead.api("/api/leadgen/phrases", { method: "PUT", body: { phrases } });
+  await OnLead.render();
+}
+
+OnLead.onLeadgenExclude = async function onLeadgenExclude(e) {
+  e.preventDefault();
+  const text = String(new FormData(e.target).get("exclude") || "").trim();
+  if (!text) return;
+  const excludePhrases = [...new Set([...(OnLead.load().leadgen?.excludePhrases || []), text])];
+  await OnLead.api("/api/leadgen", { method: "PATCH", body: { excludePhrases } });
+  await OnLead.render();
+}
+
+OnLead.removeLeadgenPhrase = async function removeLeadgenPhrase(id) {
+  const phrases = (OnLead.load().leadgen?.phrases || []).filter((p) => p.id !== id);
+  await OnLead.api("/api/leadgen/phrases", { method: "PUT", body: { phrases } });
+  await OnLead.render();
+}
+
+OnLead.removeLeadgenExclude = async function removeLeadgenExclude(text) {
+  const excludePhrases = (OnLead.load().leadgen?.excludePhrases || []).filter((p) => p !== text);
+  await OnLead.api("/api/leadgen", { method: "PATCH", body: { excludePhrases } });
+  await OnLead.render();
+}
+
+OnLead.addLeadgenNiche = async function addLeadgenNiche(id) {
+  const niche = OnLead.NICHES.find((n) => n.id === id);
+  if (!niche) return;
+  const phrases = [...(OnLead.load().leadgen?.phrases || [])];
+  for (const phrase of niche.phrases) {
+    if (!phrases.some((p) => p.phrase.toLowerCase() === phrase.toLowerCase())) {
+      phrases.push({ phrase, caseInsensitive: true });
+    }
+  }
+  await OnLead.api("/api/leadgen/phrases", { method: "PUT", body: { phrases } });
+  await OnLead.render();
+}
+
+OnLead.startLeadgenScan = async function startLeadgenScan() {
+  const status = $("#lg-status");
+  try {
+    await OnLead.saveLeadgenCfg();
+    if (document.querySelectorAll("#lg-group-list input[data-gid]").length) await OnLead.saveLeadgenGroups(false);
+    await OnLead.api("/api/leadgen/scan", { method: "POST" });
+    if (status) status.textContent = "Скан в очереди…";
+    const scanBtn = document.querySelector("[data-act=lg-scan]");
+    if (scanBtn) { scanBtn.disabled = true; scanBtn.textContent = "Сканируем…"; }
+    OnLead.pollLeadgenScan();
+  } catch (err) {
+    if (status) status.textContent = err.message;
+    else alert(err.message);
+  }
+}
+
+OnLead.pollLeadgenScan = function pollLeadgenScan() {
+  clearInterval(OnLead._leadgenPoll);
+  let n = 0;
+  let seenActive = false;
+  OnLead._leadgenPoll = setInterval(async () => {
+    n += 1;
+    try {
+      const cfg = await OnLead.api("/api/leadgen");
+      const active = cfg.scanStatus === "running" || cfg.scanStatus === "queued";
+      if (active) seenActive = true;
+      const statusEl = $("#lg-status");
+      if (statusEl && active) {
+        statusEl.textContent = cfg.scanStatus === "queued" ? "В очереди…" : "Сканируем сообщества…";
+      }
+      if (!active && (seenActive || n > 3)) {
+        clearInterval(OnLead._leadgenPoll);
+        await OnLead.render();
+        return;
+      }
+      if (n > 90) {
+        clearInterval(OnLead._leadgenPoll);
+        await OnLead.render();
+      }
+    } catch {
+      clearInterval(OnLead._leadgenPoll);
+    }
+  }, 2000);
+}
