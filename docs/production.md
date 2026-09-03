@@ -131,11 +131,13 @@ bash scripts/restore-store.sh /opt/onlead/backups/store-YYYYMMDD-HHMMSS.json
 
 ## Pre-go-live checklist
 
-- [ ] `GET /api/health` → `storage: sqlite-schema`, `mocksAllowed: false`
-- [ ] `ADMIN_PASSWORD` changed from seed value
-- [ ] `TOKEN_ENCRYPTION_KEY` is unique 64-char hex
-- [ ] YooKassa test payment succeeds (`paymentsLive: true`)
-- [ ] SMTP sends verification/reset mail (`mailConfigured: true`)
-- [ ] VK OAuth opens app `5530956` with `blank.html` redirect
-- [ ] Backups: `backups.remoteOk: true` or off-site dir populated
-- [ ] Legal requisites filled in admin (Settings → Legal) or `LEGAL_*` env
+Verified on prod (`onlead.m360-ural.online`) 2026-09-03 via `/api/health` + `docker exec onlead-app node scripts/service-audit.mjs` (FAIL 0 after pausing a stale `congratulation-vk` campaign that never ticked).
+
+- [x] `GET /api/health` → `storage: sqlite-schema`, `mocksAllowed: false`
+- [x] `ADMIN_PASSWORD` changed from seed value (len ≠ seed `admin1234`)
+- [x] `TOKEN_ENCRYPTION_KEY` is unique 64-char hex (not `.env.example` placeholder)
+- [x] YooKassa live (`paymentsLive: true`, shop API OK, history has payments)
+- [x] SMTP configured (`mailConfigured: true`, smtp.mail.ru:465 connects)
+- [x] VK OAuth app `5530956` + redirect `https://oauth.vk.com/blank.html`
+- [x] Backups: `backups.remoteOk: true` (local offsite 48 + S3 `onlead-backups`)
+- [ ] Legal requisites: operator present, **ИНН ещё пуст** — оферта остаётся черновиком (`legal` OFF in audit) until Settings → Legal or `LEGAL_INN`

@@ -331,34 +331,43 @@ OnLead.vkToolOlHubCard = function vkToolOlHubCard(def, state) {
   const on = OnLead.toolOn(state, def.slug);
   const tasks = state.campaigns[def.slug] || [];
   const stats = OnLead.vkToolOlAggregateStats(def.slug, tasks);
-  const href = `#/office/tools/${def.slug}`;
+  const href = on ? `#/office/tools/${def.slug}` : `#/office/subscriptions#${esc(def.slug)}`;
+  const t = OnLead.tool(def.slug);
+  const price = t ? Math.round(t.price) : null;
   let foot = "";
   if (def.id === "masslike" && on) {
     foot = `<p class="vk-ol-card-foot muted">Сегодня: ${stats.sentToday} · всего: ${stats.totalOk}</p>`;
+  } else if (!on && price != null) {
+    foot = `<p class="vk-ol-card-foot muted">От ${price.toLocaleString("ru-RU")} ₽ / мес</p>`;
   }
-  return `<a class="card vk-ol-card" href="${href}">
+  return `<a class="card vk-ol-card ${on ? "" : "vk-ol-card-locked"}" href="${href}">
     <div class="vk-ol-card-top">
       <h3>${esc(def.title)}</h3>
       <div class="vk-ol-card-badges">
+        ${!on ? `<span class="chip chip-muted">Закрыто</span>` : ""}
         ${def.mvp && on ? `<span class="chip chip-ok">MVP</span>` : ""}
         ${on && stats.enabled ? `<span class="chip">Вкл</span>` : ""}
-        ${!on ? `<span class="chip chip-muted">Выкл</span>` : ""}
+        ${on && !stats.enabled ? `<span class="chip chip-muted">Выкл</span>` : ""}
       </div>
     </div>
     <p class="muted vk-ol-card-desc">${esc(def.description)}</p>
     ${foot}
-    <span class="vk-ol-card-link">Открыть →</span>
+    <span class="vk-ol-card-link">${on ? "Открыть →" : "Подключить →"}</span>
   </a>`;
 };
 
 OnLead.vkToolOlExtraCard = function vkToolOlExtraCard(item, state) {
   const esc = OnLead.esc || ((s) => String(s ?? ""));
-  const href = item.href || (item.slug ? `#/office/tools/${item.slug}` : "#");
   const on = item.slug ? OnLead.toolOn(state, item.slug) : true;
-  return `<a class="card vk-ol-card" href="${href}">
-    <div class="vk-ol-card-top"><h3>${esc(item.title)}</h3>${on ? `<span class="chip chip-ok">MVP</span>` : ""}</div>
+  const href = on
+    ? (item.href || (item.slug ? `#/office/tools/${item.slug}` : "#"))
+    : `#/office/subscriptions${item.slug ? "#" + esc(item.slug) : ""}`;
+  return `<a class="card vk-ol-card ${on ? "" : "vk-ol-card-locked"}" href="${href}">
+    <div class="vk-ol-card-top"><h3>${esc(item.title)}</h3>
+      ${on ? `<span class="chip chip-ok">MVP</span>` : `<span class="chip chip-muted">Закрыто</span>`}
+    </div>
     <p class="muted vk-ol-card-desc">${esc(item.description)}</p>
-    <span class="vk-ol-card-link">Открыть →</span>
+    <span class="vk-ol-card-link">${on ? "Открыть →" : "Подключить →"}</span>
   </a>`;
 };
 

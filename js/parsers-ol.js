@@ -54,19 +54,44 @@ OnLead.parserPaywall = function parserPaywall(state, slug) {
 }
 
 OnLead.parsers = function parsers(path, state) {
-  if (path.endsWith("/parsing-accounts-vk") || path.endsWith("/accounts")) return OnLead.parseAccountsPage(state);
-  if (path.endsWith("/parsing-groups-vk") || path.endsWith("/groups")) return OnLead.parseGroupsPage(state);
+  if (path.endsWith("/parsing-accounts-vk") || path.endsWith("/accounts")) {
+    return OnLead.audienceBuilderPage(state, "accounts");
+  }
+  if (path.endsWith("/parsing-groups-vk") || path.endsWith("/groups")) {
+    return OnLead.audienceBuilderPage(state, "groups");
+  }
   const detail = path.match(/\/lists\/([^/]+)$/);
   if (detail) return OnLead.listDetailPage(detail[1], state);
-  return OnLead.listsPage(state);
-}
+  return OnLead.audienceBuilderPage(state, "lists");
+};
+
+/** Unified audience builder — tabs: accounts / groups / lists (OL parity). */
+OnLead.audienceBuilderPage = function audienceBuilderPage(state, tab) {
+  const esc = OnLead.esc || ((s) => String(s ?? ""));
+  const tabs = [
+    { id: "lists", href: "#/office/tools/lists", label: "Мои списки" },
+    { id: "accounts", href: "#/office/tools/parsing-accounts-vk", label: "Аккаунты" },
+    { id: "groups", href: "#/office/tools/parsing-groups-vk", label: "Группы" },
+  ];
+  const nav = `<div class="toolbar aud-builder-nav">${tabs.map((t) =>
+    `<a class="btn btn-sm ${tab === t.id ? "btn-ink" : "btn-ghost"}" href="${t.href}">${esc(t.label)}</a>`
+  ).join("")}</div>`;
+
+  if (tab === "accounts") {
+    return `<div class="aud-builder">${nav}${OnLead.parseAccountsPage(state)}</div>`;
+  }
+  if (tab === "groups") {
+    return `<div class="aud-builder">${nav}${OnLead.parseGroupsPage(state)}</div>`;
+  }
+  return `<div class="aud-builder">${nav}${OnLead.listsPage(state)}</div>`;
+};
 
 OnLead.listsPage = function listsPage(state) {
   const lists = state.lists || [];
   return `
     <div class="h-row">
       <div>
-        <div class="muted">Парсеры и списки</div>
+        <div class="muted">Audience builder</div>
         <h1>Мои списки</h1>
       </div>
       <div class="toolbar" style="margin:0">
@@ -74,7 +99,7 @@ OnLead.listsPage = function listsPage(state) {
         <a class="btn btn-primary" href="#/office/tools/parsing-groups-vk">Парсинг групп</a>
       </div>
     </div>
-    <p class="muted" style="margin-top:0">Сегменты из парсеров. Отсюда копируются ID в инвайтинг и лид-менеджер, горячие можно отправить в CRM.</p>
+    <p class="muted" style="margin-top:0">Сегменты из парсеров. Копируйте ID, экспортируйте или отправьте горячих в CRM.</p>
     ${lists.length ? lists.map((l) => `<div class="list-item">
       <div>
         <b>${OnLead.esc(l.name)}</b>
@@ -83,12 +108,15 @@ OnLead.listsPage = function listsPage(state) {
       <div class="match-actions">
         <b>${Number(l.count || 0).toLocaleString("ru-RU")}</b>
         <a class="btn btn-ghost btn-sm" href="#/office/tools/lists/${OnLead.esc(l.id)}">Открыть</a>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="list-copy" data-id="${OnLead.esc(l.id)}">ID</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="list-export" data-id="${OnLead.esc(l.id)}">Export</button>
+        <button type="button" class="btn btn-ink btn-sm" data-act="list-crm" data-id="${OnLead.esc(l.id)}">CRM</button>
         <button type="button" class="btn btn-ghost btn-sm" data-act="list-rename" data-id="${OnLead.esc(l.id)}" data-name="${OnLead.esc(l.name)}">Изменить</button>
         <button type="button" class="btn btn-ghost btn-sm" data-act="list-del" data-id="${OnLead.esc(l.id)}" data-name="${OnLead.esc(l.name)}">Удалить</button>
       </div>
-    </div>`).join("") : `<div class="card muted">Списков пока нет. Соберите аудиторию в «Парсинг аккаунтов» или «Парсинг групп» — результат появится здесь.</div>`}
+    </div>`).join("") : `<div class="card muted">Списков пока нет. Соберите аудиторию во вкладках «Аккаунты» или «Группы».</div>`}
   `;
-}
+};
 
 OnLead.listDetailPage = function listDetailPage(id, state) {
   const meta = (state.lists || []).find((l) => l.id === id);
@@ -101,6 +129,7 @@ OnLead.listDetailPage = function listDetailPage(id, state) {
       <div class="toolbar" style="margin:0">
         <button type="button" class="btn btn-ghost btn-sm" data-act="list-rename" data-id="${OnLead.esc(id)}" data-name="${OnLead.esc(meta?.name || "")}">Изменить</button>
         <button type="button" class="btn btn-ink btn-sm" data-act="list-copy" data-id="${OnLead.esc(id)}">Копировать ID</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="list-export" data-id="${OnLead.esc(id)}">Export CSV</button>
         <button type="button" class="btn btn-primary btn-sm" data-act="list-crm" data-id="${OnLead.esc(id)}">В CRM</button>
         <button type="button" class="btn btn-ghost btn-sm" data-act="list-del" data-id="${OnLead.esc(id)}" data-name="${OnLead.esc(meta?.name || "список")}">Удалить</button>
       </div>

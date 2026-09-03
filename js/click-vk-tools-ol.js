@@ -64,6 +64,29 @@ OnLead.clickVkTools = async function clickVkTools(act, btn, e) {
         return true;
       }
 
+  if (act === "list-export") {
+        const list = await OnLead.api("/api/lists/" + btn.dataset.id);
+        const rows = [["id", "name", "city", "url"]];
+        for (const p of list.items || []) {
+          const name = [p.firstName || p.first_name, p.lastName || p.last_name].filter(Boolean).join(" ");
+          rows.push([
+            p.id,
+            `"${String(name || "").replace(/"/g, '""')}"`,
+            `"${String(p.cityTitle || p.city || "").replace(/"/g, '""')}"`,
+            p.url || ("https://vk.com/id" + p.id),
+          ]);
+        }
+        const csv = rows.map((r) => r.join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `${(list.name || "list").replace(/[^\w\-]+/g, "_")}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        OnLead._flash = "CSV скачан";
+        return true;
+      }
+
   if (act === "list-crm") {
         await OnLead.api("/api/lists/" + btn.dataset.id + "/crm", { method: "POST" });
         OnLead._flash = "Людей из списка отправили в CRM.";

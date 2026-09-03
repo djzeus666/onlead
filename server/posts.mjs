@@ -101,6 +101,7 @@ export function normalizePost(post) {
     template: Boolean(post.template),
     applyWatermark: Boolean(post.applyWatermark),
     watermarkId: post.watermarkId || '',
+    rubricId: post.rubricId || '',
     workflowStageName: post.workflowStageName || '',
     rejectionReason: post.rejectionReason || '',
   };
@@ -136,6 +137,7 @@ export function publicPost(post) {
     vkAttachments: p.vkAttachments,
     applyWatermark: p.applyWatermark,
     watermarkId: p.watermarkId || '',
+    rubricId: p.rubricId || '',
     workflowStageName: p.workflowStageName || '',
     rejectionReason: p.rejectionReason || '',
     createdAt: p.createdAt,
@@ -187,6 +189,7 @@ export function createPost(store, userId, body = {}) {
     niche: String(body.niche || '').slice(0, 40),
     applyWatermark: Boolean(body.applyWatermark),
     watermarkId: String(body.watermarkId || '').slice(0, 40),
+    rubricId: String(body.rubricId || '').slice(0, 40),
     workflowStageName: String(body.workflowStageName || '').slice(0, 80),
     rejectionReason: String(body.rejectionReason || '').slice(0, 500),
     createdAt: now,
@@ -216,6 +219,7 @@ export function updatePost(store, userId, id, patch = {}) {
   if (patch.niche != null) post.niche = String(patch.niche).slice(0, 40);
   if (patch.applyWatermark != null) post.applyWatermark = Boolean(patch.applyWatermark);
   if (patch.watermarkId != null) post.watermarkId = String(patch.watermarkId).slice(0, 40);
+  if (patch.rubricId != null) post.rubricId = String(patch.rubricId).slice(0, 40);
   if (patch.workflowStageName != null) post.workflowStageName = String(patch.workflowStageName).slice(0, 80);
   if (patch.rejectionReason != null) post.rejectionReason = String(patch.rejectionReason).slice(0, 500);
   post.updatedAt = Date.now();
@@ -291,6 +295,14 @@ export async function publishPost(store, userId, postId, { account, token, owner
   if (!ownerId) return { ok: false, error: 'Укажите стену для публикации' };
   let text = String(post.text || '').trim();
   if (!text && post.publishKind !== 'story') return { ok: false, error: 'Добавьте текст поста' };
+
+  if (post.rubricId && cabinet) {
+    const rub = (cabinet.rubrics || []).find((r) => r.id === post.rubricId);
+    if (rub?.text) {
+      const prefix = String(rub.text).trim();
+      if (prefix && !text.startsWith(prefix)) text = `${prefix}\n\n${text}`.trim();
+    }
+  }
 
   if (post.applyWatermark && post.watermarkId && cabinet) {
     const wm = (cabinet.watermarks || []).find((w) => w.id === post.watermarkId);

@@ -139,18 +139,19 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 |---|-----|--------|--------|
 | 1 | Редактор поста/сторис/reels | Стена + сторис (фото) | 🟡 |
 | 2 | Multi-channel, schedule, AI adapt | VK + расписание + AI текст | 🟡 |
-| 3 | Watermarks, rubrics | watermarks в настройках + compose | 🟡 |
+| 3 | Watermarks, rubrics | watermarks + rubrics в контенте + compose | 🟢 |
 
 - [x] Редактор, schedule, publish VK
 - [x] AI-адаптация текста (`/api/posts/:id/ai-text`)
 - [x] Watermarks (текст при publish)
 - [x] Publish as story (фото из медиатеки)
-- [ ] Rubrics, reels
+- [x] Rubrics (cabinet + compose → prefix при publish)
+- [ ] Reels
 
 ### 2.5 Медиатека (`/media`)
 - [x] Глобальная медиатека (`/api/media`, grid UI)
 - [x] Upload, delete
-- [ ] Use in compose (VK photo attach)
+- [x] Use in compose (VK photo attach / медиатека picker)
 
 ### 2.6 История (`/history`)
 - [x] Лог публикаций (`pub_logs`, `#/office/history`)
@@ -184,7 +185,7 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 - [x] Блок статистики (сегодня / OK / ошибки / статус)
 - [x] Журнал действий из campaign stats
 - [ ] Форма полей = OL (labels, types, defaults) — по каждому инструменту
-- [ ] Module lock / plan gate как OL
+- [x] Module lock / plan gate как OL (hub «Закрыто» → тарифы; paywall «Модуль закрыт»)
 
 ---
 
@@ -197,9 +198,9 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 | Парсинг аккаунтов | (в audience) | `parsing-accounts-vk` | ✅ OnLead+ |
 
 **Чеклист**
-- [ ] Объединить парсинг в один UX как OL audience builder
-- [ ] Copy IDs, export
-- [ ] Send segment to CRM
+- [x] Объединить парсинг в один UX как OL audience builder (вкладки списки/аккаунты/группы)
+- [x] Copy IDs, export CSV
+- [x] Send segment to CRM
 
 ---
 

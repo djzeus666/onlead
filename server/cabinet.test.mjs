@@ -9,6 +9,14 @@ test('normalizeCabinet fills defaults', () => {
   const c = normalizeCabinet({});
   assert.equal(c.timezone, 'Europe/Moscow');
   assert.equal(c.notifications.emailLeadgen, true);
+  assert.deepEqual(c.rubrics, []);
+  assert.deepEqual(c.watermarks, []);
+});
+
+test('patchCabinet merges rubrics', () => {
+  const c = patchCabinet({ cabinet: {} }, { rubrics: [{ id: 'r1', name: 'A', text: 'Hi' }] });
+  assert.equal(c.rubrics.length, 1);
+  assert.equal(c.rubrics[0].name, 'A');
 });
 
 test('patchCabinet merges notifications', () => {

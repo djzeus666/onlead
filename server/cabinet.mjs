@@ -21,6 +21,7 @@ const DEFAULT_CABINET = {
   signatures: [],
   quickAnswers: [],
   watermarks: [],
+  rubrics: [],
   contentPlan: { slotsPerDay: 3, defaultTimes: '10:00, 14:00, 18:00' },
   workflow: { approvalMode: 'optional', scheduleAfterApproval: true, editAfterApproval: true },
   workflowStages: null,
@@ -33,6 +34,7 @@ export function normalizeCabinet(raw) {
   c.signatures = Array.isArray(c.signatures) ? c.signatures : [];
   c.quickAnswers = Array.isArray(c.quickAnswers) ? c.quickAnswers : [];
   c.watermarks = Array.isArray(c.watermarks) ? c.watermarks.slice(0, 20) : [];
+  c.rubrics = Array.isArray(c.rubrics) ? c.rubrics.slice(0, 40) : [];
   c.contentPlan = normalizeContentPlan(c.contentPlan);
   if (c.workflow && typeof c.workflow === 'object') {
     c.workflow = { approvalMode: 'optional', scheduleAfterApproval: true, editAfterApproval: true, ...c.workflow };
@@ -54,6 +56,7 @@ export function patchCabinet(user, body = {}) {
   if (body.signatures != null) cur.signatures = Array.isArray(body.signatures) ? body.signatures.slice(0, 40) : cur.signatures;
   if (body.quickAnswers != null) cur.quickAnswers = Array.isArray(body.quickAnswers) ? body.quickAnswers.slice(0, 40) : cur.quickAnswers;
   if (body.watermarks != null) cur.watermarks = Array.isArray(body.watermarks) ? body.watermarks.slice(0, 20) : cur.watermarks;
+  if (body.rubrics != null) cur.rubrics = Array.isArray(body.rubrics) ? body.rubrics.slice(0, 40) : cur.rubrics;
   if (body.contentPlan != null) cur.contentPlan = normalizeContentPlan({ ...cur.contentPlan, ...body.contentPlan });
   if (body.workflow != null) cur.workflow = { ...cur.workflow, ...body.workflow };
   if (body.workflowStages != null) cur.workflowStages = Array.isArray(body.workflowStages) ? body.workflowStages.slice(0, 12) : cur.workflowStages;

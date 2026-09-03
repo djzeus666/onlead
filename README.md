@@ -39,7 +39,7 @@ npm test
 npm run test:e2e
 ```
 
-**209** unit/smoke tests + **5** Playwright E2E scenarios: billing, CRM, VK tools, landings, workflow, team workspace, RBAC, hash routing, API wiring.
+**210** unit/smoke tests + **8** Playwright E2E scenarios: billing, CRM, VK tools, landings, workflow, team workspace, RBAC, hash routing, API wiring, TG receipts.
 
 ## Deploy to VPS
 

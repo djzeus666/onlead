@@ -23,6 +23,7 @@ OnLead.contentOlNav = function contentOlNav(path) {
     { href: "#/office/content", label: "Доска" },
     { href: "#/office/content?view=calendar", label: "Календарь" },
     { href: "#/office/content?view=watermarks", label: "Водяные знаки" },
+    { href: "#/office/content?view=rubrics", label: "Рубрики" },
     { href: "#/office/compose", label: "Редактор" },
     { href: "#/office/content-studio", label: "AI-план" },
     { href: "#/office/ai-images", label: "AI-картинки" },
@@ -162,12 +163,28 @@ OnLead.contentOlPage = function contentOlPage(state, path) {
       </form></div>`;
   })() : "";
 
+  const rubricsView = view === "rubrics" ? (() => {
+    const c = state.cabinet || {};
+    const rows = (c.rubrics || []).map((w) => `<div class="cab-list-row"><b>${esc(w.name)}</b>
+      <p class="muted">${esc(String(w.text || "").slice(0, 160))}</p>
+      <button type="button" class="btn btn-ghost btn-sm" data-act="cab-del-item" data-kind="rubrics" data-id="${esc(w.id)}">×</button></div>`).join("");
+    return `<div class="card"><b>Рубрики</b>
+      <p class="muted" style="font-size:12px">Шаблонный заголовок/вступление — подставляется в начало текста при публикации.</p>
+      ${rows || `<p class="muted">Пока пусто — создайте рубрику и выберите её в редакторе.</p>`}
+      <form id="cnt-add-rubric" class="cab-add" style="margin-top:12px">
+        <input name="name" placeholder="Название рубрики" required>
+        <textarea name="text" rows="2" placeholder="Текст вступления" required></textarea>
+        <button type="submit" class="btn btn-primary btn-sm">Добавить</button>
+      </form></div>`;
+  })() : "";
+
   let body = board;
   if (view === "list") body = list;
   else if (view === "calendar") body = calendar;
   else if (view === "week") body = weekView;
   else if (view === "day") body = dayView;
   else if (view === "watermarks") body = watermarksView;
+  else if (view === "rubrics") body = rubricsView;
 
   return `<div class="cnt-ol">
     ${nav}
@@ -188,6 +205,7 @@ OnLead.contentOlPage = function contentOlPage(state, path) {
       <a class="btn btn-sm ${view === "calendar" || view === "day" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=calendar">Месяц</a>
       <a class="btn btn-sm ${view === "week" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=week">Неделя</a>
       <a class="btn btn-sm ${view === "watermarks" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=watermarks">Водяные знаки</a>
+      <a class="btn btn-sm ${view === "rubrics" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=rubrics">Рубрики</a>
       <a class="btn btn-sm ${trash ? "btn-ink" : "btn-ghost"}" href="#/office/content?trash=1">Корзина · ${counts.trash || 0}</a>
     </div>
     ${body}
@@ -341,6 +359,15 @@ OnLead.bindContentOl = function bindContentOl() {
     const list = [...(c.watermarks || []), { id: "wm-" + Date.now(), name: fd.get("name"), text: fd.get("text") }];
     await OnLead.api("/api/cabinet/settings", { method: "PATCH", body: { watermarks: list } });
     OnLead._flash = "Водяной знак добавлен";
+    await render();
+  });
+  document.getElementById("cnt-add-rubric")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const c = OnLead.load().cabinet || {};
+    const list = [...(c.rubrics || []), { id: "rub-" + Date.now(), name: fd.get("name"), text: fd.get("text") }];
+    await OnLead.api("/api/cabinet/settings", { method: "PATCH", body: { rubrics: list } });
+    OnLead._flash = "Рубрика добавлена";
     await render();
   });
 };

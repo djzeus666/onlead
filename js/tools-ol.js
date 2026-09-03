@@ -191,17 +191,18 @@ OnLead.toolPage = function toolPage(slug, state) {
   const running = tasks.filter((x) => x.status === "running").length;
   const olVk = OnLead.vkToolOlPage && OnLead.isVkToolSlug && OnLead.isVkToolSlug(slug);
   const paywall = on ? "" : `
-    <div class="card" style="margin-bottom:16px">
-      <span class="chip">Не активирован</span>
+    <div class="card vk-ol-lock" style="margin-bottom:16px">
+      <span class="chip">Модуль закрыт</span>
       <h3 style="margin-top:8px">${OnLead.esc(t.name)}</h3>
       <p>${OnLead.esc(t.summary)}</p>
-      <p class="muted" style="font-size:12px;margin:0 0 8px">Сразу в работу — чаще берут 1 месяц.</p>
+      <p class="muted" style="font-size:12px;margin:0 0 8px">Нужна подписка или разовый пакет. Чаще берут 1 месяц.</p>
       <div class="toolbar">
         ${OnLead.PERIODS.map((p) => {
           const price = Math.round(t.price * p.id * (1 - p.discount));
           const primary = p.id === 1;
           return `<button class="btn ${primary ? "btn-primary" : "btn-ghost"}" data-act="buy-tool" data-slug="${slug}" data-m="${p.id}" data-amount="${price}">${primary ? `Подключить за ${price} ₽` : `${p.label} · ${price} ₽`}</button>`;
         }).join("")}
+        <a class="btn btn-ghost" href="#/office/subscriptions">Все тарифы</a>
       </div>
     </div>`;
   const header = olVk ? "" : `

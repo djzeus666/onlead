@@ -38,6 +38,7 @@ OnLead.composeOlPage = function composeOlPage(state) {
     : "";
   const cabinet = state.cabinet || {};
   const watermarks = cabinet.watermarks || [];
+  const rubrics = cabinet.rubrics || [];
   const mediaUrls = post?.mediaUrls || [];
   const pickMedia = OnLead._composePickMedia;
 
@@ -89,6 +90,12 @@ OnLead.composeOlPage = function composeOlPage(state) {
           <label class="field"><span>Расписание</span>
             <input type="datetime-local" name="scheduledAt" value="${esc(schedVal)}">
             <small class="muted">Пусто — только ручная публикация</small></label>
+          ${rubrics.length ? `<label class="field"><span>Рубрика</span>
+            <select name="rubricId">
+              <option value="">— без рубрики —</option>
+              ${rubrics.map((r) => `<option value="${esc(r.id)}"${r.id === post?.rubricId ? " selected" : ""}>${esc(r.name)}</option>`).join("")}
+            </select>
+            <small class="muted">Текст рубрики добавится в начало при публикации</small></label>` : `<p class="muted" style="font-size:12px;margin:0 0 8px"><a href="#/office/content?view=rubrics">Создать рубрику</a></p>`}
           ${watermarks.length ? `<label class="field chk"><input type="checkbox" name="applyWatermark" ${post?.applyWatermark ? "checked" : ""}> Водяной знак</label>
           <label class="field"><span>Знак</span><select name="watermarkId">
             ${watermarks.map((w) => `<option value="${esc(w.id)}"${w.id === post?.watermarkId ? " selected" : ""}>${esc(w.name)}</option>`).join("")}</select></label>` : ""}
@@ -144,6 +151,7 @@ OnLead.composeFormBody = function composeFormBody(form) {
     scheduledAt,
     applyWatermark: fd.get("applyWatermark") === "on",
     watermarkId: String(fd.get("watermarkId") || ""),
+    rubricId: String(fd.get("rubricId") || ""),
     publishKind: String(fd.get("publishKind") || "wall") === "story" ? "story" : "wall",
   };
 };
