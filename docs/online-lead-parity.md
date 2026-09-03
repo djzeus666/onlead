@@ -128,22 +128,23 @@ OnLead: `js/catalog.js`, `js/app.js`, `server/index.mjs`.
 ### 2.3 Все публикации (`/content`)
 | # | OL | OnLead | Статус |
 |---|-----|--------|--------|
-| 1 | Доска / Сетка / День / Неделя / Месяц | Доска + список | 🟡 |
+| 1 | Доска / Сетка / День / Неделя / Месяц | Доска + список + день/неделя/месяц | ✅ |
 | 2 | Колонки: Черновик → Опубликованные | draft / scheduled / published | ✅ |
 
 - [x] CRUD постов, фильтр по статусу
-- [ ] Календарные виды (день/неделя/месяц)
+- [x] Календарные виды (день/неделя/месяц)
 
 ### 2.4 Compose (`/compose`)
 | # | OL | OnLead | Статус |
 |---|-----|--------|--------|
 | 1 | Редактор поста/сторис/reels | Текст + VK wall | 🟡 |
 | 2 | Multi-channel, schedule, AI adapt | VK + расписание + AI текст | 🟡 |
-| 3 | Watermarks, rubrics | — | ❌ |
+| 3 | Watermarks, rubrics | watermarks в настройках + compose | 🟡 |
 
 - [x] Редактор, schedule, publish VK
 - [x] AI-адаптация текста (`/api/posts/:id/ai-text`)
-- [ ] Watermarks, rubrics, stories/reels
+- [x] Watermarks (текст при publish)
+- [ ] Rubrics, stories/reels
 
 ### 2.5 Медиатека (`/media`)
 - [x] Глобальная медиатека (`/api/media`, grid UI)
@@ -309,14 +310,16 @@ OnLead: `js/catalog.js`, `js/app.js`, `server/index.mjs`.
 |-------------|----------|--------|--------|
 | Команда агентов | `/ai-agents` | `#/office/ai-agents` (карточки-ссылки) | 🟡 |
 | Content Studio | `/content-studio` | `#/office/content-studio` | 🟡 |
-| Avito AI | `/avito` | — | ❌ |
-| SEO-страницы | `/seo-pages` | — | ❌ |
-| AI-аудит сайта | `/site-audit` | — | ❌ |
-| КП и документы | `/proposals` | — | ❌ |
-| Ad Kit | `/ad-kit` | — | ❌ |
-| Конкуренты | `/competitors` | — | ❌ |
+| Avito AI | `/avito` | — | ❌ out-of-scope |
+| SEO-страницы | `/seo-pages` | — | ❌ out-of-scope |
+| AI-аудит сайта | `/site-audit` | — | ❌ out-of-scope |
+| КП и документы | `/proposals` | — | ❌ out-of-scope |
+| Ad Kit | `/ad-kit` | — | ❌ out-of-scope |
+| Конкуренты | `/competitors` | — | ❌ out-of-scope |
 
 **Примечание:** OnLead имеет `image-ai`, AI в VK-инструментах и hub `/ai-agents` — не полноценные OL workstations с чатом.
+
+**Out of scope:** Avito, SEO-страницы, site-audit, proposals, ad-kit, competitors — не планируем в OnLead, пока нет явного продуктового запроса. Закрыты как out-of-scope, не как «долг parity».
 
 ---
 
@@ -327,12 +330,12 @@ OnLead: `js/catalog.js`, `js/app.js`, `server/index.mjs`.
 
 | Сервис | OL | OnLead | Статус |
 |--------|-----|--------|--------|
-| Аналитика | `/analytics` | `#/office/analytics` | 🟡 |
+| Аналитика | `/analytics` | `#/office/analytics` (+ funnel strip, detail API) | ✅ |
 | Команда | `/team` | `#/office/team` (invite, roles, shared workspace) | ✅ |
 | Рабочий процесс | `/workflow` | `#/office/workflow` | ✅ |
 | Реф. программа | `/referral` | `#/office/referral` | ✅ |
 | Профиль | `/profile` | `#/office/profile` | ✅ |
-| Настройки | `/settings` (10+ tabs) | `#/office/settings` (timezone, notify, UTM, sigs) | 🟡 |
+| Настройки | `/settings` (10+ tabs) | `#/office/settings` (9 tabs: general…privacy) | ✅ |
 | Модули | `/modules` | subscriptions частично | 🟡 |
 | База знаний | `/help` | academy | 🟡 |
 | Баланс | (в billing) | `#/office/balance` | ✅ |

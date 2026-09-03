@@ -179,7 +179,15 @@
 
 .cnt-cal-cell.has { border-color: var(--ink-muted); background: var(--surface-2); }
 .cnt-cal-cell.cnt-cal-empty { border: none; background: transparent; }
-.cnt-cal-n { font-size: 11px; color: var(--muted); }
+.cnt-week { margin-top: 8px; }
+.cnt-week-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.cnt-week-day { border: 1px solid var(--line); border-radius: 8px; min-height: 140px; background: var(--surface); display: flex; flex-direction: column; }
+.cnt-week-head { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--line); text-decoration: none; color: inherit; font-size: 12px; }
+.cnt-week-body { padding: 8px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.cnt-week-item { font-size: 12px; text-decoration: none; color: var(--ink); background: var(--surface-2); border-radius: 4px; padding: 4px 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 900px) {
+  .cnt-week-grid { grid-template-columns: 1fr; }
+}
 .cnt-col-violet .cnt-col-head b { color: #7c3aed; }
 
 @media (max-width: 860px) {

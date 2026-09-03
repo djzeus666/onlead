@@ -3,6 +3,7 @@ window.OnLead = window.OnLead || {};
 const $ = (sel, root = document) => root.querySelector(sel);
 const ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ESC[c] || c);
+OnLead.esc = esc;
 
 function icon(name) {
   const p = 'width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
@@ -43,6 +44,7 @@ function icon(name) {
 function confirmDel(name) {
   return confirm(`Удалить «${name}»? Это нельзя отменить.`);
 }
+OnLead.icon = icon;
 
 function brandLogo(href, extra = "") {
   return `<a class="logo ${extra}" href="${href}"><span class="logo-mark" aria-hidden="true"></span> OnLead<span class="logo-dot">.</span></a>`;
@@ -153,6 +155,7 @@ function userInitials(user) {
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return name.slice(0, 2).toUpperCase();
 }
+OnLead.userInitials = userInitials;
 
 function greetWord() {
   const h = new Date().getHours();
@@ -326,6 +329,7 @@ function officeChrome(path) {
   }
   return { kicker: "Кабинет", title: "OnLead" };
 }
+OnLead.officeChrome = officeChrome;
 
 async function render() {
   const seq = ++renderSeq;
@@ -397,11 +401,15 @@ async function render() {
     if (tgFunnelEd) loadTgFunnelOlData(tgFunnelEd[1]);
     if (path.endsWith("/landings/media")) loadLandingsMedia();
     if (path === "/office/media") OnLead.loadContentMediaGrid?.();
-    if (path === "/office/content" && (hashParams().get("view") === "calendar" || hashParams().get("view") === "day")) {
-      await OnLead.loadContentCalendar?.();
-      if (seq !== renderSeq) return;
-      await render();
-      return;
+    if (path === "/office/content" && ["calendar", "day", "week"].includes(hashParams().get("view"))) {
+      if (!OnLead._calHydrated) {
+        OnLead._calHydrated = true;
+        await OnLead.loadContentCalendar?.();
+        if (seq !== renderSeq) return;
+        await render();
+        OnLead._calHydrated = false;
+        return;
+      }
     }
     if (path === "/office/rss") OnLead.loadRssItems?.();
     if (path === "/office/repost") OnLead.loadRepostItems?.();
@@ -785,215 +793,10 @@ function bindAuth() {
 }
 
 /* ========== OFFICE ========== */
-function lkNavNarrow() {
-  return window.matchMedia("(max-width: 980px)").matches;
-}
-
-function setLkNav(open) {
-  const app = document.querySelector(".app");
-  const side = document.querySelector(".lk-side");
-  if (!app) return;
-  app.classList.toggle("nav-open", !!open);
-  if (side) {
-    if (!lkNavNarrow() || open) side.removeAttribute("inert");
-    else side.setAttribute("inert", "");
-  }
-  document.querySelectorAll("[data-act=lk-nav-toggle]").forEach((el) => {
-    el.setAttribute("aria-expanded", open ? "true" : "false");
-  });
-  document.querySelectorAll(".lk-burger").forEach((el) => {
-    el.setAttribute("aria-label", open ? "Закрыть меню" : "Меню");
-  });
-  if (open && side) side.scrollTop = 0;
-}
-
-function officeShell(path) {
-  const state = OnLead.load();
-  const trial = OnLead.trialLeft(state);
-  const chrome = officeChrome(path);
-  const flash = OnLead._flash ? `<div class="notice"><div>${esc(OnLead._flash)}</div></div>${(OnLead._flash = "") || ""}` : "";
-  const landingEditor = /^\/office\/landings\/pages\/[^/]+$/.test(path);
-  const landingTemplateView = /^\/office\/landings\/templates\/[^/]+$/.test(path);
-  const hideContext = landingEditor || landingTemplateView;
-  const context = (path === "/office" || path === "/office/accounts" || hideContext)
-    ? ""
-    : `<div class="lk-context"><p class="lk-context-kicker">${esc(chrome.kicker)}</p><h1>${esc(chrome.title)}</h1></div>`;
-  const hideTopTitle = path === "/office/accounts" || hideContext;
-  const pageClass = path === "/office"
-    ? " page-home"
-    : landingEditor
-      ? " page-landing-edit"
-      : landingTemplateView
-        ? " page-landing-preview"
-        : "";
-  return `
-  <div class="app">
-    ${lkSidebar(path, state, trial)}
-    <button type="button" class="lk-scrim" data-act="lk-nav-close" aria-label="Закрыть меню"></button>
-    <div class="lk-main">
-      ${lkTopbar(path, state, trial, hideTopTitle)}
-      <div class="main">
-        ${context}
-        <div class="page${pageClass}">${flash}${officePage(path, state)}</div>
-      </div>
-    </div>
-  </div>`;
-}
-
-function hrefPath(href) {
-  return String(href || "").replace("#", "");
-}
-
-function navActive(path, href) {
-  const p = hrefPath(href);
-  if (path === p) return true;
-  if (p === "/office" && path === "/office") return true;
-  if (p === "/office/tools/lists" && path.startsWith("/office/tools/lists/")) return true;
-  if (p === "/office/academy" && path.startsWith("/office/academy/")) return true;
-  if (p === "/office/landings" && path.startsWith("/office/landings")) return true;
-  if (p === "/office/content" && (path.startsWith("/office/content") || path === "/office/compose" || path === "/office/content-studio" || path === "/office/media" || path === "/office/history" || path === "/office/ai-images")) return true;
-  if (p === "/office/automation" && (path.startsWith("/office/automation") || path === "/office/rss" || path === "/office/crosspost" || path === "/office/repost")) return true;
-  if (p === "/office/analytics" && (path.startsWith("/office/analytics") || path === "/office/settings" || path === "/office/team" || path === "/office/workflow" || path === "/office/ai-agents")) return true;
-  return false;
-}
-
-function bundleActive(pack, path) {
-  const root = hrefPath(pack.href);
-  if (path === root || path.startsWith(root + "/")) return true;
-  return (pack.items || []).some((i) => {
-    const p = hrefPath(i.href);
-    return path === p || (p.length > 1 && path.startsWith(p + "/"));
-  });
-}
-
-function readSideOpen() {
-  try { return JSON.parse(sessionStorage.getItem("onlead-side-open") || "{}") || {}; }
-  catch { return {}; }
-}
-
-function writeSideOpen(id, open) {
-  const map = readSideOpen();
-  map[id] = !!open;
-  try { sessionStorage.setItem("onlead-side-open", JSON.stringify(map)); } catch { /* ignore */ }
-}
-
-function packIsOpen(id, pathOn) {
-  const map = readSideOpen();
-  if (map[id] === true) return true;
-  if (map[id] === false) return false;
-  return pathOn;
-}
-
-function navCounter(key, state) {
-  if (key === "accounts") {
-    const used = state.accounts?.length || 0;
-    const total = state.accountSlots || 3;
-    return `${used}/${total}`;
-  }
-  return "";
-}
-
-function lkSideLink(path, item) {
-  const active = navActive(path, item.href);
-  const counter = item.counter ? navCounter(item.counter, OnLead.load()) : "";
-  return `<a href="${item.href}" class="lk-side-link${active ? " on" : ""}">
-    <span class="lk-side-ico">${icon(item.icon || "home")}</span>
-    <span class="lk-side-text">${esc(item.label)}</span>
-    ${item.badge ? `<span class="lk-side-badge">${esc(item.badge)}</span>` : ""}
-    ${counter ? `<span class="lk-side-count">${esc(counter)}</span>` : ""}
-  </a>`;
-}
-
-function lkSideBundle(b, path) {
-  const pathOn = bundleActive(b, path);
-  const open = packIsOpen(b.id, pathOn);
-  const count = (b.items || []).length;
-  const kids = (b.items || []).map((it) => {
-    const active = navActive(path, it.href) || (hrefPath(it.href).length > 2 && (path === hrefPath(it.href) || path.startsWith(hrefPath(it.href) + "/")));
-    return `<a href="${it.href}" class="lk-side-sublink${active ? " on" : ""}">
-      <span>${esc(it.label)}</span>
-      ${it.badge ? `<i>${esc(it.badge)}</i>` : ""}
-    </a>`;
-  }).join("");
-  return `<details class="lk-side-group" data-pack="${esc(b.id)}"${open ? " open" : ""}>
-    <summary>
-      <span class="lk-side-ico">${icon(b.icon || "layers")}</span>
-      <span class="lk-side-label"><b>${esc(b.title)}</b><small>${esc(b.hint || "")}</small></span>
-      <span class="lk-side-count">${count}</span>
-    </summary>
-    <div class="lk-side-sub">${kids}</div>
-  </details>`;
-}
-
-function lkSidebar(path, state, trial) {
-  const initials = esc(userInitials(state.user));
-  const acc = state.accounts?.[0];
-  const navSections = (OnLead.NAV || []).map((sec) => {
-    const links = (sec.items || []).map((it) => lkSideLink(path, it)).join("");
-    return `<div class="lk-side-sec">
-      <div class="lk-side-sec-title">${esc(sec.section)}</div>
-      ${links}
-    </div>`;
-  }).join("");
-  const featured = (OnLead.FEATURED || []).map((it) => lkSideLink(path, it)).join("");
-  const bundles = (OnLead.BUNDLES || []).map((b) => lkSideBundle(b, path)).join("");
-  const cabinet = [
-    ...(OnLead.CABINET || []),
-    { href: "#/office/profile", icon: "user", label: "Профиль" },
-  ].map((it) => lkSideLink(path, it)).join("");
-  return `<aside class="lk-side" aria-label="Навигация кабинета">
-    <div class="lk-side-head">
-      <a class="lk-logo" href="#/office"><span class="logo-mark" aria-hidden="true"></span> OnLead<span class="logo-dot">.</span></a>
-      <button type="button" class="lk-side-close" data-act="lk-nav-close" aria-label="Закрыть меню">×</button>
-    </div>
-    <div class="lk-side-user">
-      <div class="lk-ava">${initials}</div>
-      <div class="lk-side-user__who">
-        <b>${esc(state.user?.name || state.user?.email || "Пользователь")}</b>
-        <small>${acc ? `Активный · id ${esc(acc.vkId)}` : "Аккаунт VK не подключён"}</small>
-      </div>
-    </div>
-    <nav class="lk-side-nav">
-      ${navSections}
-      <div class="lk-side-sec">
-        <div class="lk-side-sec-title">Инструменты VK</div>
-        ${featured}
-        ${bundles}
-      </div>
-      <div class="lk-side-sec">
-        <div class="lk-side-sec-title">Кабинет</div>
-        ${cabinet}
-      </div>
-    </nav>
-    <div class="lk-side-foot">
-      ${trial ? `<div class="lk-side-trial">Триал ${esc(trial)}</div>` : ""}
-      <button type="button" class="btn btn-ghost btn-sm lk-side-logout" data-act="logout">Выйти</button>
-    </div>
-  </aside>`;
-}
-
-function lkTopbar(path, state, trial, hideTitle = false) {
-  const initials = esc(userInitials(state.user));
-  return `<header class="lk-topbar">
-    <button type="button" class="lk-burger" data-act="lk-nav-toggle" aria-label="Меню" aria-expanded="false">${icon("menu")}</button>
-    <div class="lk-topbar__title"${hideTitle ? ' hidden' : ""}>${esc(officeChrome(path).title)}</div>
-    <div class="lk-bar-end">
-      ${trial ? `<span class="lk-trial">триал ${esc(trial)}</span>` : ""}
-      <a class="lk-bal" href="#/office/balance">${state.balance.toLocaleString("ru-RU")} ₽</a>
-      <details class="lk-account">
-        <summary class="lk-ava" aria-label="Аккаунт">${initials}</summary>
-        <div class="lk-account-menu">
-          <div class="lk-account-who"><b>${esc(state.user?.name || state.user?.email || "Пользователь")}</b><small>${esc(state.user?.email || state.user?.id || "")}</small></div>
-          <a href="#/office/profile">Профиль</a>
-          <a href="#/office/balance">Баланс</a>
-          <a href="#/office/referral">Рефералы</a>
-          <a href="#/office/subscriptions">Тарифы</a>
-          <button type="button" data-act="logout">Выйти</button>
-        </div>
-      </details>
-    </div>
-  </header>`;
-}
+function officeShell(path) { return OnLead.officeShell(path); }
+function setLkNav(open) { return OnLead.setLkNav(open); }
+function hrefPath(href) { return OnLead.hrefPath(href); }
+function navActive(path, href) { return OnLead.navActive(path, href); }
 
 function officePage(path, state) {
   if (path === "/office") return dash(state);
@@ -1031,6 +834,7 @@ function officePage(path, state) {
   if (path.startsWith("/office/landings")) return landings(path, state);
   return `<h1 class="serif">Страница не найдена</h1>`;
 }
+OnLead.officePage = officePage;
 
 function toolPriceLabel(t) {
   return t.price ? `${t.price} ₽/мес` : "входит в парсеры";
@@ -1139,160 +943,8 @@ function academy(path) {
     </article>`).join("")}</div>`;
 }
 
-function channelLabel(c) {
-  if (c.type === "personal") return "страница";
-  if (c.type === "page") return "паблик";
-  if (c.type === "event") return "событие";
-  return "группа";
-}
-
-function renderVkMessagesBlock(a, msgUi) {
-  if (!msgUi) return "";
-  const msgOk = a.hasMessagesToken;
-  const id = esc(a.id);
-  const tokens = `<div class="vk-slot__tokens">
-      <button class="vk-token vk-token--base is-ok" type="button" data-act="vk-login" title="Обновить базовый токен">
-        <span class="vk-token__icon" aria-hidden="true">🔗</span>
-        <span class="vk-token__label">Базовый токен</span>
-        <span class="vk-token__refresh" aria-hidden="true">↻</span>
-      </button>
-      <button class="vk-token vk-token--msg${msgOk ? " is-ok" : ""}" type="button" data-act="vk-msg-login" data-id="${id}" title="${msgOk ? "Обновить токен сообщений" : "Получить токен сообщений"}">
-        <span class="vk-token__icon" aria-hidden="true">💬</span>
-        <span class="vk-token__label">Токен сообщений</span>
-        <span class="vk-token__refresh" aria-hidden="true">↻</span>
-      </button>
-    </div>`;
-  if (msgOk) {
-    return `${tokens}
-      <div class="vk-msg-paste-panel" data-id="${id}" hidden>
-        <p class="vk-slot__hint">Скопируйте URL blank.html после входа во VK:</p>
-        <textarea class="vk-msg-paste vk-slot__paste" data-id="${id}" rows="2" placeholder="https://oauth.vk.com/blank.html#access_token=…"></textarea>
-        <button class="btn btn-ink btn-sm" data-act="vk-msg-save" data-id="${id}" type="button">Сохранить</button>
-      </div>
-      <p class="vk-slot__status vk-msg-status" data-id="${id}"></p>`;
-  }
-  return `${tokens}
-    <div class="vk-msg-paste-panel" data-id="${id}">
-      <p class="vk-slot__hint">Для ЛС нужен отдельный токен с правом «Сообщения».</p>
-      <textarea class="vk-msg-paste vk-slot__paste" data-id="${id}" rows="2" placeholder="https://oauth.vk.com/blank.html#access_token=…"></textarea>
-      <button class="btn btn-ink btn-sm" data-act="vk-msg-save" data-id="${id}" type="button">Сохранить</button>
-    </div>
-    <p class="vk-slot__status vk-msg-status" data-id="${id}"></p>`;
-}
-
-function vkSlotShortId(id) {
-  const digits = String(id || "").replace(/\D/g, "");
-  return digits ? digits.slice(-6) : "—";
-}
-
-function vkSlotAvatar(a) {
-  const initials = esc((a.name || "VK").split(" ").map((p) => p[0]).join("").slice(0, 2));
-  return a.avatarUrl
-    ? `<img class="vk-slot__ava" src="${esc(a.avatarUrl)}" alt="">`
-    : `<div class="vk-slot__ava vk-slot__ava--fb">${initials}</div>`;
-}
-
-function renderActiveVkSlot(a, state, { isActive = false } = {}) {
-  const msgUi = OnLead.vkMessagesUiOn(state);
-  const groups = (a.channels || []).filter((c) => c.type !== "personal").length;
-  const id = esc(a.id);
-  const vkUrl = `https://vk.com/id${encodeURIComponent(a.vkId || "")}`;
-  return `<article class="vk-slot vk-slot--active${isActive ? " vk-slot--current" : ""}">
-    <div class="vk-slot__top">
-      <div class="vk-slot__badges">
-        ${isActive ? `<span class="vk-slot__badge vk-slot__badge--active">★ Активный</span>` : ""}
-        <span class="vk-slot__badge">AID: ${vkSlotShortId(a.id)}</span>
-      </div>
-      <details class="vk-slot__menu">
-        <summary aria-label="Меню аккаунта">⋯</summary>
-        <div class="vk-slot__menu-pop">
-          <a href="${vkUrl}" target="_blank" rel="noopener">Открыть профиль VK</a>
-          <button type="button" data-act="vk-refresh-channels" data-id="${id}">Обновить сообщества</button>
-          <button type="button" class="danger" data-act="del-acc" data-id="${id}">Отключить</button>
-        </div>
-      </details>
-    </div>
-    <div class="vk-slot__profile">
-      ${vkSlotAvatar(a)}
-      <div class="vk-slot__who">
-        <b>${esc(a.name)}</b>
-        <a class="vk-slot__vkid" href="${vkUrl}" target="_blank" rel="noopener">id ${esc(a.vkId)}</a>
-        ${groups ? `<span class="vk-slot__stat">${groups} сообществ</span>` : `<span class="vk-slot__stat vk-ch-status" data-id="${id}">сообщества не загружены</span>`}
-      </div>
-    </div>
-    ${msgUi ? renderVkMessagesBlock(a, msgUi) : `<div class="vk-slot__tokens"><button class="vk-token vk-token--base is-ok" type="button" data-act="vk-login"><span class="vk-token__icon">🔗</span><span class="vk-token__label">Базовый токен</span><span class="vk-token__refresh">↻</span></button></div>`}
-    <p class="vk-slot__foot">Бесплатный слот · без срока</p>
-  </article>`;
-}
-
-function renderEmptyVkSlot() {
-  return `<article class="vk-slot vk-slot--empty">
-    <div class="vk-slot__empty-ico" aria-hidden="true">👤+</div>
-    <b>Слот свободен</b>
-    <p class="vk-slot__hint">Привяжите VK-аккаунт, чтобы начать работу</p>
-    <button type="button" class="btn btn-primary vk-slot__bind" data-act="vk-connect-open">🔗 Привязать аккаунт</button>
-    <p class="vk-slot__foot">Бесплатный слот · без срока</p>
-  </article>`;
-}
-
-function renderRentVkSlot() {
-  return `<article class="vk-slot vk-slot--rent">
-    <div class="vk-slot__rent-ico" aria-hidden="true">+</div>
-    <b>Арендовать слот</b>
-    <p class="vk-slot__hint">Дополнительный платный слот на срок от 1 до 24 месяцев</p>
-    <button type="button" class="btn btn-ghost vk-slot__rent" data-act="vk-rent-slot">Узнать условия</button>
-  </article>`;
-}
-
-function vkConnectModalHtml(state) {
-  return `<div class="vk-connect-modal" id="vk-connect-modal" hidden>
-    <button type="button" class="vk-connect-modal__backdrop" data-act="vk-connect-close" aria-label="Закрыть"></button>
-    <div class="vk-connect-modal__card" role="dialog" aria-modal="true" aria-labelledby="vk-connect-title">
-      <button type="button" class="vk-connect-modal__x" data-act="vk-connect-close" aria-label="Закрыть">×</button>
-      <h2 id="vk-connect-title">Привязать VK-аккаунт</h2>
-      <p class="vk-slot__hint">Приложения 5530956 / 6463690 → <code>oauth.vk.com/blank.html</code></p>
-      <p class="vk-slot__hint"><b>Шаг 1.</b> Получите токен во VK. <b>Шаг 2.</b> Скопируйте весь URL страницы blank.html.</p>
-      <p class="vk-slot__status" id="vk-connect-status"></p>
-      <button class="btn btn-primary btn-block" data-act="vk-login" type="button">Перейти и получить токен</button>
-      <div class="field" style="margin-top:12px">
-        <label>Токен vk1.a… или URL blank.html</label>
-        <textarea id="vk-token-paste" class="vk-slot__paste" rows="3" placeholder="https://oauth.vk.com/blank.html#access_token=vk1.a.…"></textarea>
-      </div>
-      <div class="actions" style="margin-top:10px">
-        <button class="btn btn-ink btn-block" data-act="vk-save-token" type="button">Привязать токен</button>
-        ${OnLead.health?.mocksAllowed ? `<button class="btn btn-ghost btn-block" data-act="vk-mock" type="button">Демо без VK</button>` : ""}
-      </div>
-    </div>
-  </div>`;
-}
-
-function accounts(state) {
-  const slots = state.accountSlots || 3;
-  const used = state.accounts.length;
-  const activeId = state.activeAccount || state.accounts[0]?.id;
-  const slotCards = [];
-  for (let i = 0; i < slots; i += 1) {
-    const acc = state.accounts[i];
-    if (acc) slotCards.push(renderActiveVkSlot(acc, state, { isActive: acc.id === activeId }));
-    else slotCards.push(renderEmptyVkSlot());
-  }
-  slotCards.push(renderRentVkSlot());
-  return `<div class="vk-acc-page">
-    <div class="vk-acc-head">
-      <div>
-        <h1>VK аккаунты</h1>
-        <p class="vk-acc-sub">Привязано ${used} из ${slots} слотов</p>
-      </div>
-      <div class="vk-acc-head__acts">
-        <button type="button" class="btn btn-ghost vk-acc-log-btn" data-act="vk-event-log">Журнал событий</button>
-        <button type="button" class="btn btn-primary vk-acc-rent-btn" data-act="vk-rent-slot">+ Арендовать слот</button>
-      </div>
-    </div>
-    <div class="vk-slot-grid">${slotCards.join("")}</div>
-    ${vkConnectModalHtml(state)}
-  </div>`;
-}
-
+function accounts(state) { return OnLead.accountsOlPage(state); }
+function channelLabel(c) { return OnLead.channelLabel(c); }
 function subscriptions(state) {
   if (OnLead.billingOlPage) return OnLead.billingOlPage(state);
   return `<div class="card muted">Тарифы загружаются…</div>`;
@@ -2710,23 +2362,10 @@ function landings(path, state) {
     <div class="card muted">Загрузка…</div>`}`;
 }
 
-function bindSidebar() {
-  document.querySelectorAll("details.lk-side-group[data-pack]").forEach((el) => {
-    el.addEventListener("toggle", () => writeSideOpen(el.dataset.pack, el.open));
-  });
-}
-
 function bindOffice() {
   const root = document.getElementById("app");
   root.onclick = onClick;
-  bindSidebar();
-  setLkNav(false);
-  if (!window._lkEsc) {
-    window._lkEsc = true;
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") setLkNav(false);
-    });
-  }
+  OnLead.bindOfficeChrome?.();
   $("#tool-form")?.addEventListener("submit", onToolSubmit);
   $("#tool-form [name=accountId]")?.addEventListener("change", () => {
     const slug = $("#tool-form")?.dataset.slug;

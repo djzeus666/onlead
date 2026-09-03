@@ -9,8 +9,11 @@ import * as landings from './landings-routes.mjs';
 import * as vk from './vk-routes.mjs';
 import * as content from './content-routes.mjs';
 import * as crm from './crm-routes.mjs';
+import * as leadgen from './leadgen-routes.mjs';
+import * as neuro from './neuro-routes.mjs';
+import * as tg from './tg-routes.mjs';
 
-const handlers = [health, auth, me, cabinet, billing, campaigns, landings, vk, content, crm];
+const handlers = [health, auth, me, cabinet, billing, campaigns, landings, vk, content, crm, leadgen, neuro, tg];
 
 export async function dispatchRoutes(ctx) {
   if (!assertWorkspaceMutation(ctx.req, ctx.res, ctx.path)) return true;

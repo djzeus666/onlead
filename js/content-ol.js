@@ -107,7 +107,44 @@ OnLead.contentOlPage = function contentOlPage(state, path) {
     return `<div class="card"><b>${esc(dateKey)}</b>
       ${all.length ? all.map((p) => `<a class="cnt-row" href="#/office/compose?id=${esc(p.id)}"><b>${esc(p.title || p.text.slice(0, 40))}</b>
         <span class="chip">${esc(p.status)}</span></a>`).join("") : `<p class="muted">Нет постов на этот день</p>`}
-      <a class="btn btn-ghost btn-sm" href="#/office/content?view=calendar">← Календарь</a></div>`;
+      <a class="btn btn-ghost btn-sm" href="#/office/content?view=calendar">← Календарь</a>
+      <a class="btn btn-ghost btn-sm" href="#/office/content?view=week&date=${esc(dateKey)}">Неделя</a></div>`;
+  })() : "";
+
+  const weekView = view === "week" ? (() => {
+    const dateKey = q.get("date") || new Date().toISOString().slice(0, 10);
+    const anchor = new Date(dateKey + "T12:00:00");
+    const dow = (anchor.getDay() + 6) % 7;
+    const monday = new Date(anchor);
+    monday.setDate(anchor.getDate() - dow);
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const row = dayMap[key] || { scheduled: [], published: [], draft: [] };
+      const all = [...row.scheduled, ...row.published, ...row.draft];
+      const label = d.toLocaleDateString("ru-RU", { weekday: "short", day: "numeric", month: "short" });
+      days.push(`<div class="cnt-week-day">
+        <a class="cnt-week-head" href="#/office/content?view=day&date=${key}"><b>${esc(label)}</b><span>${all.length}</span></a>
+        <div class="cnt-week-body">${all.length
+          ? all.slice(0, 6).map((p) => `<a class="cnt-week-item" href="#/office/compose?id=${esc(p.id)}">${esc(p.title || String(p.text || "").slice(0, 36) || "—")}</a>`).join("")
+          : `<span class="muted">—</span>`}</div>
+      </div>`);
+    }
+    const prev = new Date(monday); prev.setDate(monday.getDate() - 7);
+    const next = new Date(monday); next.setDate(monday.getDate() + 7);
+    const pKey = prev.toISOString().slice(0, 10);
+    const nKey = next.toISOString().slice(0, 10);
+    return `<div class="cnt-week">
+      <div class="toolbar cnt-cal-head">
+        <a class="btn btn-ghost btn-sm" href="#/office/content?view=week&date=${pKey}">←</a>
+        <b>Неделя с ${esc(monday.toLocaleDateString("ru-RU"))}</b>
+        <a class="btn btn-ghost btn-sm" href="#/office/content?view=week&date=${nKey}">→</a>
+        <a class="btn btn-ghost btn-sm" href="#/office/content?view=calendar">Месяц</a>
+      </div>
+      <div class="cnt-week-grid">${days.join("")}</div>
+    </div>`;
   })() : "";
 
   const watermarksView = view === "watermarks" ? (() => {
@@ -128,6 +165,7 @@ OnLead.contentOlPage = function contentOlPage(state, path) {
   let body = board;
   if (view === "list") body = list;
   else if (view === "calendar") body = calendar;
+  else if (view === "week") body = weekView;
   else if (view === "day") body = dayView;
   else if (view === "watermarks") body = watermarksView;
 
@@ -147,7 +185,8 @@ OnLead.contentOlPage = function contentOlPage(state, path) {
     <div class="toolbar cnt-toolbar">
       <a class="btn btn-sm ${view === "board" || (!view || view === "board") && !trash ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=board">Доска</a>
       <a class="btn btn-sm ${view === "list" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=list">Список</a>
-      <a class="btn btn-sm ${view === "calendar" || view === "day" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=calendar">Календарь</a>
+      <a class="btn btn-sm ${view === "calendar" || view === "day" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=calendar">Месяц</a>
+      <a class="btn btn-sm ${view === "week" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=week">Неделя</a>
       <a class="btn btn-sm ${view === "watermarks" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=watermarks">Водяные знаки</a>
       <a class="btn btn-sm ${trash ? "btn-ink" : "btn-ghost"}" href="#/office/content?trash=1">Корзина · ${counts.trash || 0}</a>
     </div>

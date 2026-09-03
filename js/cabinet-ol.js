@@ -50,6 +50,18 @@ OnLead.analyticsOlPage = function analyticsOlPage(state, path) {
       <div class="card"><span class="muted">Черновики</span><b>${OnLead.fmtAnalyticsN(cc.draft)}</b></div>
       <div class="card"><span class="muted">Опубликовано</span><b>${OnLead.fmtAnalyticsN(cc.published)}</b></div>
     </div>
+    <div class="card cab-funnel" style="margin:12px 0">
+      <b>Воронка контента</b>
+      <div class="cab-funnel-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        ${[
+          ["Черновики", cc.draft],
+          ["Согласование", cc.pending_approval],
+          ["В расписании", cc.scheduled],
+          ["Опубликовано", cc.published],
+          ["Ошибки", cc.failed],
+        ].map(([label, n]) => `<div class="chip">${esc(label)} · <b>${OnLead.fmtAnalyticsN(n)}</b></div>`).join("")}
+      </div>
+    </div>
     <div class="card cab-chart">
       <b>Активность по дням</b>
       <div class="cab-bars">${(activity || []).map((r) => {
@@ -111,6 +123,8 @@ OnLead.SETTINGS_TABS = [
   { id: "utm", label: "UTM" },
   { id: "signatures", label: "Подписи" },
   { id: "quick", label: "Быстрые ответы" },
+  { id: "integrations", label: "Интеграции" },
+  { id: "privacy", label: "Приватность" },
 ];
 
 OnLead.settingsOlPage = function settingsOlPage(state, path) {
@@ -179,6 +193,27 @@ OnLead.settingsOlPage = function settingsOlPage(state, path) {
         <textarea name="text" rows="2" placeholder="Текст подписи" required></textarea>
         <button type="submit" class="btn btn-ghost btn-sm">Добавить</button>
       </form></div>`;
+  } else if (tab === "integrations") {
+    body = `<div class="card cab-form">
+      <b>Интеграции</b>
+      <p class="muted" style="font-size:12px;margin:8px 0 12px">Подключения, которые уже есть в кабинете.</p>
+      <ul class="cab-list" style="list-style:none;padding:0;margin:0;display:grid;gap:8px">
+        <li class="cab-list-row"><b>VK</b><span class="muted">Аккаунты и сообщества</span><a class="btn btn-ghost btn-sm" href="#/office/accounts">Открыть</a></li>
+        <li class="cab-list-row"><b>Telegram</b><span class="muted">Боты и воронки</span><a class="btn btn-ghost btn-sm" href="#/office/telegram">Открыть</a></li>
+        <li class="cab-list-row"><b>Inbound webhook</b><span class="muted">Черновики извне</span><a class="btn btn-ghost btn-sm" href="#/office/automation">Открыть</a></li>
+        <li class="cab-list-row"><b>YooKassa</b><span class="muted">Оплата тарифов</span><a class="btn btn-ghost btn-sm" href="#/office/balance">Баланс</a></li>
+      </ul>
+    </div>`;
+  } else if (tab === "privacy") {
+    body = `<div class="card cab-form">
+      <b>Приватность и документы</b>
+      <p class="muted" style="font-size:12px;margin:8px 0 12px">Юридические страницы сервиса.</p>
+      <div class="toolbar" style="flex-wrap:wrap;gap:8px">
+        <a class="btn btn-ghost btn-sm" href="#/privacy" target="_blank">Конфиденциальность</a>
+        <a class="btn btn-ghost btn-sm" href="#/offer" target="_blank">Оферта</a>
+        <a class="btn btn-ghost btn-sm" href="#/consent" target="_blank">Согласие</a>
+      </div>
+    </div>`;
   } else {
     const rows = (c.quickAnswers || []).map((s) => `<div class="cab-list-row"><b>${esc(s.name)}</b><p class="muted">${esc(String(s.text || "").slice(0, 120))}</p>
       <button type="button" class="btn btn-ghost btn-sm" data-act="cab-del-item" data-kind="quickAnswers" data-id="${esc(s.id)}">×</button></div>`).join("");

@@ -31,7 +31,7 @@ npm test
 npm run test:e2e
 ```
 
-**204** unit/smoke tests + **5** Playwright E2E scenarios (`server/**/*.test.mjs`, `e2e/`): billing, CRM, VK tools, landings, workflow, team workspace, hash routing, API wiring.
+**209** unit/smoke tests + **5** Playwright E2E scenarios (`server/**/*.test.mjs`, `e2e/`): billing, CRM, VK tools, landings, workflow, team workspace, RBAC, hash routing, API wiring.
 
 ## Deploy to VPS
 
