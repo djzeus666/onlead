@@ -200,3 +200,51 @@ OnLead.parseGroupsPage = function parseGroupsPage(state) {
     </div>` : ""}
   `;
 }
+
+/* --- parse submit / list detail --- */
+OnLead.onParse = async function onParse(e) {
+  e.preventDefault();
+  const kind = e.target.dataset.kind;
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  const status = $("#parse-status");
+  const btn = e.target.querySelector("button[type=submit]");
+  const prev = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = "Собираем…"; }
+  if (status) status.textContent = "Собираем аудиторию в VK…";
+  try {
+    const list = await OnLead.api("/api/parsers", { method: "POST", body: { kind, ...data } });
+    OnLead._flash = `Готово: ${list.name} · ${list.count} человек`;
+    OnLead.go("/office/tools/lists/" + list.id);
+    await OnLead.render();
+  } catch (err) {
+    if (btn) { btn.disabled = false; if (prev) btn.textContent = prev; }
+    if (status) status.textContent = err.message;
+    else alert(err.message);
+  }
+}
+
+OnLead.personName = function personName(p) {
+  return [p.firstName || p.first_name, p.lastName || p.last_name].filter(Boolean).join(" ") || ("id" + p.id);
+}
+
+OnLead.loadOpenList = async function loadOpenList() {
+  const m = route().path.match(/\/lists\/([^/]+)$/);
+  const box = $("#list-people");
+  if (!m || !box) return;
+  try {
+    const list = await OnLead.api("/api/lists/" + m[1]);
+    const people = list.items || [];
+    const meta = $("#list-meta");
+    if (meta) meta.textContent = `${people.length.toLocaleString("ru-RU")} человек · ${list.source || ""}`;
+    box.className = "";
+    box.innerHTML = people.length ? `<table class="table"><thead><tr><th>Имя</th><th>Город</th><th></th></tr></thead><tbody>
+      ${people.map((p) => {
+        const href = p.url || ("https://vk.com/id" + p.id);
+        return `<tr><td><a href="${OnLead.esc(href)}" target="_blank" rel="noopener">${OnLead.esc(OnLead.personName(p))}</a></td><td>${OnLead.esc(p.cityTitle || p.city || "—")}</td><td><a class="btn btn-ghost btn-sm" href="${OnLead.esc(href)}" target="_blank" rel="noopener">VK</a></td></tr>`;
+      }).join("")}
+    </tbody></table>` : `<div class="card muted">В списке пока никого нет.</div>`;
+  } catch (err) {
+    box.className = "card muted";
+    box.textContent = err.message;
+  }
+}

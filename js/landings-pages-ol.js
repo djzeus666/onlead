@@ -499,3 +499,170 @@ OnLead.landings = function landings(path, state) {
     </form>
     <div class="card muted">Загрузка…</div>`}`;
 }
+
+/* --- create/save/public binders --- */
+OnLead.saveOlLandingEditor = async function saveOlLandingEditor() {
+  const editor = document.querySelector(".ol-editor");
+  if (!editor) return;
+  const id = editor.dataset.id;
+  const page = (OnLead.load().landings || []).find((p) => p.id === id) || {};
+  const content = OnLead.collectLandingOlContent(editor, page);
+  const pro = OnLead.collectOlProFields ? OnLead.collectOlProFields(editor) : {};
+  await OnLead.api("/api/landings/" + id, {
+    method: "PATCH",
+    body: {
+      name: document.getElementById("ol-title")?.value || page.name,
+      slug: document.getElementById("ol-slug")?.value || page.slug,
+      seoDescription: document.getElementById("ol-seo")?.value || "",
+      content,
+      ...pro,
+    },
+  });
+  OnLead._flash = "Сохранили";
+  await OnLead.refresh();
+}
+
+OnLead.createLanding = async function createLanding(name, template) {
+  const tpl = OnLead.landingTemplate(template);
+  const title = String(name || tpl?.name || "").trim() || "Новая страница";
+  const body = tpl
+    ? {
+        name: title,
+        template: tpl.id,
+        layout: tpl.layout,
+        kicker: tpl.kicker,
+        headline: tpl.headline,
+        sub: tpl.sub,
+        cta: tpl.cta,
+        formTitle: tpl.formTitle,
+        features: tpl.features,
+        fields: tpl.fields,
+        tone: tpl.tone,
+        quote: tpl.quote,
+        author: tpl.author,
+        role: tpl.role,
+        urgency: tpl.urgency,
+        stats: tpl.stats,
+        steps: tpl.steps,
+        prices: tpl.prices,
+        outcomes: tpl.outcomes,
+        audience: tpl.audience,
+        faq: tpl.faq,
+        reviews: tpl.reviews,
+        meta: tpl.meta,
+      }
+    : { name: title, headline: title, sub: "Оставьте заявку — перезвоним в рабочее время.", cta: "Оставить заявку", formTitle: "Оставьте заявку", fields: ["name", "phone"], tone: "teal", layout: "specialist" };
+  const created = await OnLead.api("/api/landings", { method: "POST", body });
+  OnLead._flash = `Черновик «${title}» создан. Опубликуйте, чтобы открыть ссылку клиентам.`;
+  OnLead.go("/office/landings/pages/" + created.id);
+  await OnLead.render();
+}
+
+OnLead.onLandingCreate = async function onLandingCreate(e) {
+  e.preventDefault();
+  const name = String(new FormData(e.target).get("name") || "").trim();
+  try {
+    await OnLead.createLanding(name);
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+OnLead.bindLandingEditor = function bindLandingEditor() {
+  const form = $("#landing-edit-form");
+  if (!form) return;
+  const hostSel = form.querySelector("#landing-host-select");
+  const customWrap = document.getElementById("landing-host-custom-wrap");
+  const syncCustomHost = () => {
+    if (customWrap && hostSel) customWrap.style.display = hostSel.value === "__custom__" ? "" : "none";
+  };
+  hostSel?.addEventListener("change", syncCustomHost);
+  syncCustomHost();
+  const paint = () => {
+    const box = document.getElementById("lp-live");
+    if (!box) return;
+    const page = { ...landingFromForm(form), id: form.dataset.id };
+    box.className = `lp-preview-frame tone-${page.tone || "teal"}`;
+    box.innerHTML = landingPageView(page, { preview: true });
+  };
+  form.addEventListener("input", paint);
+  form.addEventListener("change", paint);
+  form.addEventListener("submit", onLandingSave);
+}
+
+OnLead.onLandingSave = async function onLandingSave(e) {
+  e.preventDefault();
+  const form = e.target;
+  try {
+    await OnLead.api("/api/landings/" + form.dataset.id, { method: "PATCH", body: OnLead.landingFromForm(form) });
+    OnLead._flash = "Сохранили";
+    await OnLead.render();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+OnLead.publicLandingMissing = function publicLandingMissing() {
+  return `<div class="lp-pub">
+    <div class="lp-pub-bar"><a href="#/"><b>OnLead</b></a></div>
+    <div class="lp-wrap"><div class="card lp-ok"><h3>Страница недоступна</h3><p class="muted">Её сняли с публикации или ссылка устарела.</p></div></div>
+  </div>`;
+}
+
+OnLead.publicLandingHtml = function publicLandingHtml(page) {
+  if (OnLead.landingOlPublicHtml) return OnLead.landingOlPublicHtml(page);
+  const lay = normLayout(page.layout);
+  const tone = page.tone || "teal";
+  const pixel = page.pixelHtml ? `<div class="lp-pixel">${page.pixelHtml}</div>` : "";
+  return `${pixel}<div class="lp-pub lp-pro-pub lp-pub-${OnLead.esc(lay)} lp-${OnLead.esc(tone)}">${landingPageView(page)}</div>`;
+}
+
+OnLead.renderPublicLanding = async function renderPublicLanding(path, root) {
+  const bySlug = path.startsWith("/l/");
+  const key = decodeURIComponent(path.replace(/^\/(p|l)\//, ""));
+  if (!key) {
+    document.title = "OnLead";
+    root.innerHTML = OnLead.publicLandingMissing();
+    return;
+  }
+  try {
+    const apiPath = bySlug
+      ? `/api/public/landings/slug/${encodeURIComponent(key)}`
+      : `/api/public/landings/${encodeURIComponent(key)}`;
+    const page = await OnLead.api(apiPath);
+    document.title = page.headline || page.name || "OnLead";
+    if (page.seoDescription) {
+      let meta = document.querySelector('meta[name="description"]');
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.name = "description";
+        document.head.appendChild(meta);
+      }
+      meta.content = page.seoDescription;
+    }
+    root.innerHTML = OnLead.publicLandingHtml(page);
+    const form = document.getElementById("ol-lead-form") || document.getElementById("lp-lead-form");
+    form?.addEventListener("submit", onPublicLead);
+    scrollToHashAnchor();
+  } catch {
+    document.title = "OnLead";
+    root.innerHTML = OnLead.publicLandingMissing();
+  }
+}
+
+OnLead.onPublicLead = async function onPublicLead(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = Object.fromEntries(new FormData(form).entries());
+  const btn = form.querySelector("[type=submit]");
+  const prev = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = "Отправляем…"; }
+  try {
+    await OnLead.api("/api/public/landings/" + encodeURIComponent(form.dataset.id) + "/leads", { method: "POST", body: data });
+    const okText = form.dataset.success || "Заявка принята — перезвоним в рабочее время.";
+    form.outerHTML = `<div class="card lp-ok ol-ok"><h3>${OnLead.esc(okText)}</h3></div>`;
+  } catch (err) {
+    if (btn) { btn.disabled = false; if (prev) btn.textContent = prev; }
+    alert(err.message || "Не получилось отправить заявку. Попробуйте ещё раз.");
+  }
+}

@@ -265,3 +265,230 @@ OnLead.toolPage = function toolPage(slug, state) {
   if (olVk) return OnLead.vkToolOlPage(slug, state, { t, on, tasks, paywall, body: on ? core : "" });
   return `${header}${paywall}${on ? kpi + core : ""}`;
 }
+
+/* --- extras / preview --- */
+OnLead.isBdayToday = function isBdayToday(bdate) {
+  if (!bdate) return false;
+  const p = String(bdate).split(".");
+  if (p.length < 2) return false;
+  const now = new Date();
+  return Number(p[0]) === now.getDate() && Number(p[1]) === now.getMonth() + 1;
+}
+
+OnLead.syncAutopostPreview = function syncAutopostPreview() {
+  const form = $("#tool-form");
+  if (!form || form.dataset.slug !== "autoposting-vk") return;
+  const box = document.getElementById("autopost-preview");
+  if (!box) return;
+  const d = Object.fromEntries(new FormData(form).entries());
+  let text = String(d.text || "").trim() || "—";
+  const when = String(d.when || "Сейчас");
+  const dest = String(d.dest || "");
+  if (!/utm_[a-z]+=/i.test(text)) {
+    const urlMatch = text.match(/https?:\/\/[^\s]+/);
+    if (urlMatch) {
+      const src = encodeURIComponent(String(d.utmSource || "onlead").trim() || "onlead");
+      const med = encodeURIComponent(String(d.utmMedium || "vk").trim() || "vk");
+      const camp = encodeURIComponent(String(d.utmCampaign || "autopost").trim() || "autopost");
+      const url = urlMatch[0];
+      const sep = url.includes("?") ? "&" : "?";
+      text = text.replace(url, `${url}${sep}utm_source=${src}&utm_medium=${med}&utm_campaign=${camp}`);
+    }
+  }
+  box.textContent = `[${when}]${dest ? ` · ${dest}` : ""}\n\n${text}`;
+}
+
+OnLead.loadToolExtras = async function loadToolExtras(slug) {
+  const box = document.getElementById("tool-extra");
+  if (!box) return;
+  const live = ["congratulation-vk", "chat-manager-vk", "group-manager-vk", "invite-vk", "grabber-vk", "broom-vk", "ai-lead-vk", "autostoris-vk"];
+  if (!live.includes(slug)) return;
+  const q = vkAccountQuery();
+  box.innerHTML = `<div class="card muted" style="margin-top:16px">Загружаем данные VK…</div>`;
+  try {
+    if (slug === "congratulation-vk") {
+      const friends = await OnLead.api("/api/vk/friends" + q);
+      const today = (friends || []).filter((f) => OnLead.isBdayToday(f.bdate));
+      const state = OnLead.load();
+      const tasks = state.campaigns["congratulation-vk"] || [];
+      const statusById = new Map();
+      for (const c of tasks) {
+        for (const row of c.stats?.congrats || []) {
+          if (row?.id == null) continue;
+          const id = Number(row.id);
+          const prev = statusById.get(id);
+          if (!prev || (row.ok && !prev.ok) || (row.at && prev.at && row.at > prev.at)) {
+            statusById.set(id, row);
+          }
+        }
+      }
+      const sentN = today.filter((f) => statusById.get(Number(f.id))?.ok).length;
+      const failN = today.filter((f) => {
+        const s = statusById.get(Number(f.id));
+        return s && !s.ok;
+      }).length;
+      const waitN = today.length - sentN - failN;
+      box.innerHTML = `<div class="card" style="margin-top:16px">
+        <b>Именинники сегодня · ${today.length}</b>
+        <p class="muted" style="margin:8px 0 0">Отправлено ${sentN} · ошибки ${failN} · в очереди ${waitN}. Статус обновляется после запуска задачи.</p>
+        ${today.length ? today.map((f) => {
+          const st = statusById.get(Number(f.id));
+          let chip = `<span class="chip">в очереди</span>`;
+          let sub = `id ${f.id}`;
+          if (st?.ok) {
+            const via = st.via === "message" ? "ЛС" : st.via === "wall" ? "стена" : "отправлено";
+            chip = `<span class="chip chip-ok">выполнено · ${via}</span>`;
+            sub = `id ${f.id}${st.at ? ` · ${OnLead.fmtWhen(st.at)}` : ""}`;
+          } else if (st && !st.ok) {
+            chip = `<span class="chip chip-bad">не отправлено</span>`;
+            sub = `id ${f.id}`;
+          } else if (f.canWritePrivateMessage === false) {
+            sub += " · ЛС закрыты";
+          }
+          return `<div class="list-item" style="margin-top:8px"><div><b>${OnLead.esc(f.firstName)} ${OnLead.esc(f.lastName)}</b><div class="muted">${OnLead.esc(sub)}</div></div>${chip}</div>`;
+        }).join("") : `<p class="muted">Сегодня в друзьях нет дней рождения — задача отправит поздравления, когда они появятся.</p>`}
+      </div>`;
+      return;
+    }
+    if (slug === "chat-manager-vk") {
+      const chats = await OnLead.api("/api/vk/chats" + q);
+      const state = OnLead.load();
+      const tasks = state.campaigns["chat-manager-vk"] || [];
+      const task = tasks.find((c) => c.status === "running") || tasks[0];
+      const st = task?.stats || {};
+      const log = (st.chatLog || []).slice(0, 12);
+      box.innerHTML = `<div class="card" style="margin-top:16px">
+        <b>Менеджер чатов</b>
+        <div class="kpi" style="margin:12px 0">
+          <div class="card"><span>Чатов</span><b>${st.chats || chats.length || 0}</b></div>
+          <div class="card"><span>ЛС</span><b>${st.replied || 0}</b></div>
+          <div class="card"><span>Приветствия</span><b>${st.welcomed || 0}</b></div>
+          <div class="card"><span>Модерация</span><b>${st.moderated || 0}</b></div>
+          <div class="card"><span>Киков</span><b>${st.kicked || 0}</b></div>
+        </div>
+        ${task?.stats?.lastMessage ? `<p class="muted">${OnLead.esc(task.stats.lastMessage)}</p>` : ""}
+        ${log.length ? `<h3 style="margin:16px 0 8px">Последние действия</h3>
+          ${log.map((row) => `<div class="list-item" style="margin-top:6px"><div><b>${OnLead.esc(row.kind || "")}</b> · ${OnLead.esc(row.chat || "")}<div class="muted">${OnLead.esc(row.note || "")}${row.at ? " · " + OnLead.fmtWhen(row.at) : ""}</div></div></div>`).join("")}` : ""}
+        <h3 style="margin:16px 0 8px">Диалоги · ${chats.length}</h3>
+        ${chats.length ? chats.map((c) => `<div class="list-item" style="margin-top:8px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px"><b>${OnLead.esc(c.title)}</b><div class="muted">${OnLead.esc(c.last)}</div></div>
+          ${c.unread ? `<span class="chip">${c.unread}</span>` : ""}
+          <div style="width:100%;display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <input class="input" style="flex:1;min-width:160px" placeholder="Ответ из кабинета…" id="chat-reply-${OnLead.esc(c.peerId)}">
+            <button type="button" class="btn btn-primary btn-sm" data-act="vk-chat-reply" data-peer="${OnLead.esc(c.peerId)}">Отправить</button>
+          </div>
+        </div>`).join("") : `<p class="muted">Диалогов нет или нет права messages.</p>`}
+      </div>`;
+      return;
+    }
+    if (slug === "ai-lead-vk") {
+      const state = OnLead.load();
+      const tasks = state.campaigns["ai-lead-vk"] || [];
+      const task = tasks.find((c) => c.status === "running") || tasks[0];
+      const dialogs = Object.values(task?.stats?.aiDialogs || {});
+      box.innerHTML = `<div class="card" style="margin-top:16px">
+        <b>AI диалоги · ${dialogs.length}</b>
+        <div class="kpi" style="margin:12px 0">
+          <div class="card"><span>Активных</span><b>${dialogs.length}</b></div>
+          <div class="card"><span>Ответов</span><b>${dialogs.filter((d) => (d.turns || 0) > 1).length}</b></div>
+          <div class="card"><span>Горячие 8+</span><b>${dialogs.filter((d) => (d.score || 0) >= 8).length}</b></div>
+        </div>
+        ${task?.stats?.lastMessage ? `<p class="muted">${OnLead.esc(task.stats.lastMessage)}</p>` : ""}
+        ${dialogs.length ? dialogs.slice(0, 15).map((d) => `<div class="list-item" style="margin-top:8px"><div>
+          <b>${OnLead.esc(d.name || ("id" + d.vkId))}</b>
+          <div class="muted">ход ${d.turns || 1} · скоринг ${d.score || "—"}/10${d.lastReply ? " · " + OnLead.esc(d.lastReply.slice(0, 60)) : ""}</div>
+        </div></div>`).join("") : `<p class="muted">Диалоги появятся после первых касаний и ответов.</p>`}
+      </div>`;
+      return;
+    }
+    if (slug === "autostoris-vk") {
+      const state = OnLead.load();
+      const tasks = state.campaigns["autostoris-vk"] || [];
+      const task = tasks.find((c) => c.status === "running") || tasks[0];
+      const metrics = (task?.stats?.storyMetrics || []).slice(0, 12);
+      const views = metrics.reduce((a, m) => a + (m.views || 0), 0);
+      const clicks = metrics.reduce((a, m) => a + (m.clicks || 0), 0);
+      const queueLeft = task?.stats?.storyQueueLeft ?? 0;
+      box.innerHTML = `<div class="card" style="margin-top:16px">
+        <b>Автосторис</b>
+        <div class="kpi" style="margin:12px 0">
+          <div class="card"><span>В очереди</span><b>${queueLeft}</b></div>
+          <div class="card"><span>Опубликовано</span><b>${metrics.length}</b></div>
+          <div class="card"><span>Просмотры</span><b>${views}</b></div>
+          <div class="card"><span>Клики</span><b>${clicks}</b></div>
+        </div>
+        ${task?.stats?.lastMessage ? `<p class="muted">${OnLead.esc(task.stats.lastMessage)}</p>` : ""}
+        ${metrics.length ? metrics.map((m) => `<div class="list-item" style="margin-top:8px"><div>
+          <b>${OnLead.esc(m.caption || "Сторис")}</b>
+          <div class="muted">${m.views || 0} просм · ${m.clicks || 0} клик · ${OnLead.esc(m.via || "")}${m.at ? " · " + OnLead.fmtWhen(m.at) : ""}</div>
+        </div></div>`).join("") : `<p class="muted">Статистика появится после первой публикации.</p>`}
+      </div>`;
+      return;
+    }
+    if (slug === "invite-vk") {
+      const state = OnLead.load();
+      const tasks = state.campaigns["invite-vk"] || [];
+      const task = tasks.find((c) => c.status === "running") || tasks[0];
+      const st = task?.stats || {};
+      const limit = Number(task?.payload?.perDay || 30);
+      box.innerHTML = `<div class="card" style="margin-top:16px">
+        <b>Инвайтинг</b>
+        <div class="kpi" style="margin:12px 0">
+          <div class="card"><span>Приглашено</span><b>${st.ok || 0}</b></div>
+          <div class="card"><span>Вступили</span><b>${st.joinedCount ?? (st.joinedIds || []).length}</b></div>
+          <div class="card"><span>Лимит/день</span><b>${limit}</b></div>
+          <div class="card"><span>Ошибки</span><b>${st.fail || 0}</b></div>
+        </div>
+        ${task?.stats?.lastMessage ? `<p class="muted">${OnLead.esc(task.stats.lastMessage)}</p>` : ""}
+        <p class="muted" style="margin:8px 0 0">Чёрный список и «Вступили» обновляются после запуска задачи.</p>
+      </div>`;
+      return;
+    }
+    if (slug === "grabber-vk") {
+      const state = OnLead.load();
+      const tasks = state.campaigns["grabber-vk"] || [];
+      const task = tasks.find((c) => c.status === "running") || tasks[0];
+      const st = task?.stats || {};
+      const grabbed = (st.grabbedKeys || []).length;
+      const queued = (state.autopostQueue || []).length;
+      box.innerHTML = `<div class="card" style="margin-top:16px">
+        <b>Граббер постов</b>
+        <div class="kpi" style="margin:12px 0">
+          <div class="card"><span>Собрано ключей</span><b>${grabbed}</b></div>
+          <div class="card"><span>В очереди автопостинга</span><b>${queued}</b></div>
+          <div class="card"><span>Успешно</span><b>${st.ok || 0}</b></div>
+        </div>
+        ${task?.stats?.lastMessage ? `<p class="muted">${OnLead.esc(task.stats.lastMessage)}</p>` : `<p class="muted">Запустите задачу — здесь появятся сбор и очередь.</p>`}
+      </div>`;
+      return;
+    }
+    if (slug === "group-manager-vk") {
+      const groups = await OnLead.api("/api/vk/groups" + q);
+      let reqsHtml = "";
+      if (groups[0]) {
+        const gid = groups[0].id;
+        const reqs = await OnLead.api(`/api/vk/groups/requests?groupId=${encodeURIComponent(gid)}${q ? "&" + q.slice(1) : ""}`);
+        reqsHtml = `<h3 style="margin:16px 0 8px">Заявки в «${OnLead.esc(groups[0].name)}»</h3>
+          ${reqs.length ? reqs.map((r) => `<div class="list-item"><div><b>${OnLead.esc(r.firstName)} ${OnLead.esc(r.lastName)}</b></div>
+            <div class="match-actions">
+              <button class="btn btn-primary btn-sm" data-act="gm-approve" data-gid="${gid}" data-uid="${r.id}">Одобрить</button>
+              <button class="btn btn-ghost btn-sm" data-act="gm-deny" data-gid="${gid}" data-uid="${r.id}">Отклонить</button>
+            </div></div>`).join("") : `<p class="muted">Открытых заявок нет.</p>`}`;
+      }
+      box.innerHTML = `<div class="card" style="margin-top:16px"><b>Сообщества, где вы админ · ${groups.length}</b>
+        ${groups.length ? groups.map((g) => `<div class="list-item" style="margin-top:8px"><div><b>${OnLead.esc(g.name)}</b><div class="muted">${OnLead.esc(g.screenName || "")} · id ${g.id}</div></div></div>`).join("") : `<p class="muted">Нет управляемых сообществ — войдите через VK.</p>`}
+        ${reqsHtml}
+      </div>`;
+      return;
+    }
+    if (slug === "broom-vk") {
+      const friends = await OnLead.api("/api/vk/friends" + q);
+      const suspects = (friends || []).filter((f) => f.deactivated || !f.photo);
+      box.innerHTML = `<div class="card" style="margin-top:16px"><b>Кандидаты на чистку · ${suspects.length} из ${friends.length}</b>
+        ${suspects.length ? suspects.slice(0, 30).map((f) => `<div class="list-item" style="margin-top:8px"><div><b>${OnLead.esc(f.firstName)} ${OnLead.esc(f.lastName)}</b><div class="muted">${f.deactivated ? "деактивирован" : "нет фото"}</div></div></div>`).join("") : `<p class="muted">По текущим правилам чистить некого.</p>`}
+      </div>`;
+    }
+  } catch (err) {
+    box.innerHTML = `<div class="card muted" style="margin-top:16px">${OnLead.esc(err.message)}</div>`;
+  }
+}
