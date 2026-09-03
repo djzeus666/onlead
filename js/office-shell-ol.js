@@ -71,7 +71,7 @@ OnLead.navActive = function navActive(path, href) {
   if (p === "/office/landings" && path.startsWith("/office/landings")) return true;
   if (p === "/office/content" && (path.startsWith("/office/content") || path === "/office/compose" || path === "/office/content-studio" || path === "/office/media" || path === "/office/history" || path === "/office/ai-images")) return true;
   if (p === "/office/automation" && (path.startsWith("/office/automation") || path === "/office/rss" || path === "/office/crosspost" || path === "/office/repost")) return true;
-  if (p === "/office/analytics" && (path.startsWith("/office/analytics") || path === "/office/settings" || path === "/office/team" || path === "/office/workflow" || path === "/office/ai-agents")) return true;
+  if (p === "/office/analytics" && path.startsWith("/office/analytics")) return true;
   return false;
 }
 
@@ -184,7 +184,7 @@ OnLead.lkSidebar = function lkSidebar(path, state, trial) {
       </div>
     </nav>
     <div class="lk-side-foot">
-      ${trial ? `<div class="lk-side-trial">Триал ${OnLead.esc(trial)}</div>` : ""}
+      ${trial ? `<a class="lk-side-trial" href="#/office/subscriptions">Триал ${OnLead.esc(trial)} · оформить</a>` : ""}
       <button type="button" class="btn btn-ghost btn-sm lk-side-logout" data-act="logout">Выйти</button>
     </div>
   </aside>`;
@@ -192,11 +192,18 @@ OnLead.lkSidebar = function lkSidebar(path, state, trial) {
 
 OnLead.lkTopbar = function lkTopbar(path, state, trial, hideTitle = false) {
   const initials = OnLead.esc(OnLead.userInitials(state.user));
+  const pending = (state.pendingPayments || [])[0];
+  const pendingBanner = pending
+    ? `<div class="lk-pending-pay">
+        <span>Незавершённая оплата · ${OnLead.esc(pending.title || "платёж")} · ${Number(pending.amount || 0).toLocaleString("ru-RU")} ₽</span>
+        <button type="button" class="btn btn-ink btn-sm" data-act="resume-pay" data-kind="${OnLead.esc(pending.kind || "topup")}" data-amount="${OnLead.esc(pending.amount || "")}" data-package="${OnLead.esc(pending.packageId || "")}" data-slug="${OnLead.esc(pending.slug || "")}" data-tgplan="${OnLead.esc(pending.tgPlan || "")}" data-m="${OnLead.esc(pending.months || 1)}" data-url="${OnLead.esc(pending.confirmationUrl || "")}">Продолжить</button>
+      </div>`
+    : "";
   return `<header class="lk-topbar">
     <button type="button" class="lk-burger" data-act="lk-nav-toggle" aria-label="Меню" aria-expanded="false">${OnLead.icon("menu")}</button>
     <div class="lk-topbar__title"${hideTitle ? ' hidden' : ""}>${OnLead.esc(OnLead.officeChrome(path).title)}</div>
     <div class="lk-bar-end">
-      ${trial ? `<span class="lk-trial">триал ${OnLead.esc(trial)}</span>` : ""}
+      ${trial ? `<a class="lk-trial" href="#/office/subscriptions">триал ${OnLead.esc(trial)} · тариф</a>` : ""}
       <a class="lk-bal" href="#/office/balance">${state.balance.toLocaleString("ru-RU")} ₽</a>
       <details class="lk-account">
         <summary class="lk-ava" aria-label="Аккаунт">${initials}</summary>
@@ -210,5 +217,5 @@ OnLead.lkTopbar = function lkTopbar(path, state, trial, hideTitle = false) {
         </div>
       </details>
     </div>
-  </header>`;
+  </header>${pendingBanner}`;
 }

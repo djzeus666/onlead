@@ -637,7 +637,7 @@ function balance(state) {
   const pending = (state.pendingPayments || []).map((p) => `
     <div class="notice">
       <div>Незавершённый платёж: ${esc(p.title)} — ${Number(p.amount).toLocaleString("ru-RU")} ₽</div>
-      <button class="btn btn-ink btn-sm" data-act="resume-pay" data-kind="${esc(p.kind)}" data-amount="${esc(p.amount)}" data-package="${esc(p.packageId || "")}" data-slug="${esc(p.slug || "")}" data-tgplan="${esc(p.tgPlan || "")}" data-m="${esc(p.months || 1)}">Продолжить оплату</button>
+      <button class="btn btn-ink btn-sm" data-act="resume-pay" data-kind="${esc(p.kind)}" data-amount="${esc(p.amount)}" data-package="${esc(p.packageId || "")}" data-slug="${esc(p.slug || "")}" data-tgplan="${esc(p.tgPlan || "")}" data-m="${esc(p.months || 1)}" data-url="${esc(p.confirmationUrl || "")}">Продолжить оплату</button>
     </div>`).join("");
   return `${pending}<div class="h-row"><h1>Баланс</h1></div>
     <p class="muted">${live ? "Пополнение счёта — через ЮKassa (карта, СБП). Тарифы и инструменты можно оплатить с этого счёта или картой." : "Тестовый режим — зачисление без ЮKassa."}</p>

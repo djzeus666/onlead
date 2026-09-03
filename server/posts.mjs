@@ -1,6 +1,8 @@
 /** Content posts — draft / schedule / publish (online-lead.ru parity). */
 import { randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { vkPublishWall, vkUploadWallPhotos } from './vk/adapter.mjs';
+import { vkPublishStory } from './vk/stories.mjs';
 import { mediaPath } from './media.mjs';
 import { generatedPath } from './ai.mjs';
 
@@ -95,6 +97,7 @@ export function normalizePost(post) {
     mediaUrls: Array.isArray(post.mediaUrls) ? post.mediaUrls : [],
     vkAttachments: Array.isArray(post.vkAttachments) ? post.vkAttachments : [],
     channel: post.channel || 'vk',
+    publishKind: post.publishKind === 'story' ? 'story' : 'wall',
     template: Boolean(post.template),
     applyWatermark: Boolean(post.applyWatermark),
     watermarkId: post.watermarkId || '',
@@ -120,6 +123,7 @@ export function publicPost(post) {
     ownerId: p.ownerId || null,
     ownerLabel: p.ownerLabel || '',
     channel: p.channel,
+    publishKind: p.publishKind === 'story' ? 'story' : 'wall',
     mediaUrls: p.mediaUrls,
     scheduledAt: p.scheduledAt || null,
     publishedAt: p.publishedAt || null,
@@ -175,6 +179,7 @@ export function createPost(store, userId, body = {}) {
     ownerId: body.ownerId != null && body.ownerId !== '' ? Number(body.ownerId) : null,
     ownerLabel: String(body.ownerLabel || '').slice(0, 120),
     channel: 'vk',
+    publishKind: body.publishKind === 'story' ? 'story' : 'wall',
     mediaUrls: Array.isArray(body.mediaUrls) ? body.mediaUrls.slice(0, 10) : [],
     vkAttachments: Array.isArray(body.vkAttachments) ? body.vkAttachments.slice(0, 10) : [],
     scheduledAt: body.scheduledAt ? Number(body.scheduledAt) : null,
@@ -203,6 +208,7 @@ export function updatePost(store, userId, id, patch = {}) {
     post.ownerId = patch.ownerId != null && patch.ownerId !== '' ? Number(patch.ownerId) : null;
   }
   if (patch.ownerLabel != null) post.ownerLabel = String(patch.ownerLabel).slice(0, 120);
+  if (patch.publishKind != null) post.publishKind = patch.publishKind === 'story' ? 'story' : 'wall';
   if (patch.mediaUrls != null) post.mediaUrls = Array.isArray(patch.mediaUrls) ? patch.mediaUrls.slice(0, 10) : [];
   if (patch.vkAttachments != null) post.vkAttachments = Array.isArray(patch.vkAttachments) ? patch.vkAttachments.slice(0, 10) : [];
   if (patch.scheduledAt !== undefined) post.scheduledAt = patch.scheduledAt ? Number(patch.scheduledAt) : null;
@@ -284,11 +290,65 @@ export async function publishPost(store, userId, postId, { account, token, owner
   const ownerId = resolveOwnerId(account, rawOwnerId ?? post.ownerId);
   if (!ownerId) return { ok: false, error: 'Укажите стену для публикации' };
   let text = String(post.text || '').trim();
-  if (!text) return { ok: false, error: 'Добавьте текст поста' };
+  if (!text && post.publishKind !== 'story') return { ok: false, error: 'Добавьте текст поста' };
 
   if (post.applyWatermark && post.watermarkId && cabinet) {
     const wm = (cabinet.watermarks || []).find((w) => w.id === post.watermarkId);
     if (wm?.text) text = `${text}\n\n— ${String(wm.text).trim()}`;
+  }
+
+  if (post.publishKind === 'story') {
+    const imageUrl = (post.mediaUrls || [])[0] || '';
+    if (!imageUrl) return { ok: false, error: 'Для сторис добавьте фото из медиатеки' };
+    const r = await vkPublishStory(token, {
+      ownerId,
+      caption: text,
+      imageUrl: String(imageUrl).startsWith('http') ? imageUrl : undefined,
+      imageBuffer: (() => {
+        const file = resolveMediaFile(imageUrl);
+        if (!file) return undefined;
+        try {
+          return readFileSync(file);
+        } catch {
+          return undefined;
+        }
+      })(),
+    });
+    const preview = text.slice(0, 160) || 'Сторис';
+    const ownerLabel = post.ownerLabel || (ownerId < 0 ? `Сообщество ${Math.abs(ownerId)}` : 'Моя страница');
+    if (r.ok) {
+      post.status = 'published';
+      post.publishedAt = Date.now();
+      post.scheduledAt = null;
+      post.externalPostId = r.storyId || '';
+      post.permalink = r.permalink || '';
+      post.error = '';
+      post.accountId = account.id;
+      post.ownerId = ownerId;
+      post.updatedAt = Date.now();
+      appendPubLog(store, userId, {
+        postId: post.id,
+        channel: 'vk-story',
+        status: 'ok',
+        message: r.message || 'Сторис опубликован',
+        externalPostId: r.storyId,
+        textPreview: preview,
+        ownerLabel,
+      });
+      return { ok: true, post: publicPost(post), result: r };
+    }
+    post.status = 'failed';
+    post.error = r.message || 'Ошибка публикации сторис';
+    post.updatedAt = Date.now();
+    appendPubLog(store, userId, {
+      postId: post.id,
+      channel: 'vk-story',
+      status: 'error',
+      message: post.error,
+      textPreview: preview,
+      ownerLabel,
+    });
+    return { ok: false, error: post.error, post: publicPost(post) };
   }
 
   let attachments = (post.vkAttachments || []).filter(Boolean).slice(0, 10);

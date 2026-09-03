@@ -64,6 +64,12 @@ OnLead.composeOlPage = function composeOlPage(state) {
           <input name="title" value="${esc(post?.title || "")}" placeholder="Тема поста"></label>
         <label class="field"><span>Текст поста</span>
           <textarea name="text" rows="12" placeholder="Текст для VK…">${esc(post?.text || "")}</textarea></label>
+        <label class="field"><span>Формат публикации</span>
+          <select name="publishKind">
+            <option value="wall"${(post?.publishKind || "wall") === "wall" ? " selected" : ""}>Стена</option>
+            <option value="story"${post?.publishKind === "story" ? " selected" : ""}>Сторис (нужно фото)</option>
+          </select>
+          <small class="muted">Сторис публикует первое фото из медиатеки</small></label>
         <div class="toolbar compose-ai">
           <button type="button" class="btn btn-ghost btn-sm" data-act="compose-ai" ${!post?.id ? "disabled title=\"Сначала сохраните черновик\"" : ""}>✨ AI-текст</button>
           <a class="btn btn-ghost btn-sm" href="#/office/media">Медиатека</a>
@@ -138,6 +144,7 @@ OnLead.composeFormBody = function composeFormBody(form) {
     scheduledAt,
     applyWatermark: fd.get("applyWatermark") === "on",
     watermarkId: String(fd.get("watermarkId") || ""),
+    publishKind: String(fd.get("publishKind") || "wall") === "story" ? "story" : "wall",
   };
 };
 

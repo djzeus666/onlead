@@ -198,6 +198,10 @@ async function reusePendingCheckout(user, quote) {
       return { mode: 'yookassa', paymentId: match.id, confirmationUrl: null, applied: true, reused: true };
     }
     if (yk.status === 'pending' && yk.confirmation?.confirmation_url) {
+      mutate((d) => {
+        const row = (d.payments || []).find((p) => p.id === match.id);
+        if (row) row.confirmationUrl = yk.confirmation.confirmation_url;
+      });
       return {
         mode: 'yookassa',
         paymentId: match.id,
@@ -338,6 +342,7 @@ export async function createCheckout(user, body, origin) {
       provider: 'yookassa',
       status: 'pending',
       ...quote,
+      confirmationUrl,
       createdAt: Date.now(),
     });
     d.payments = d.payments.slice(0, 500);

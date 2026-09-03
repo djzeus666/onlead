@@ -178,6 +178,7 @@ OnLead.dashboardOlPage = function dashboardOlPage(state, opts = {}) {
 
   return `<section class="lk-home dash-ol">
     ${promoBlock}
+    ${onboarding}
     <div class="dash-hero card">
       <div class="dash-hero-main">
         <p class="dash-kicker">Личный кабинет · ${esc(date)}</p>
@@ -262,8 +263,6 @@ OnLead.dashboardOlPage = function dashboardOlPage(state, opts = {}) {
         </div>
       </aside>
     </div>
-
-    ${onboarding}
 
     ${refLink ? `<div class="lk-ref-dash card">
       <div class="lk-ref-dash-head"><b>Реферальная программа</b><span class="muted">7% с каждого платежа</span></div>

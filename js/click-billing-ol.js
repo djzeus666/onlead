@@ -24,6 +24,11 @@ OnLead.clickBilling = async function clickBilling(act, btn, e) {
       }
 
   if (act === "resume-pay") {
+        const url = btn.dataset.url || "";
+        if (url && /^https?:\/\//i.test(url)) {
+          location.assign(url);
+          return true;
+        }
         const kind = btn.dataset.kind || "topup";
         const body = { kind, method: "yookassa" };
         if (kind === "topup") body.amount = Number(btn.dataset.amount || 1000);

@@ -387,6 +387,7 @@ OnLead.TOOLS = [
     features: ["Очередь 9:16", "AI-картинки", "Ссылки и опросы", "Несколько аккаунтов"],
     fields: [
   { key: "groups", label: "Сообщества", type: "textarea", placeholder: "https://vk.com/club... (необязательно — иначе личная страница)" },
+      { key: "imageUrl", label: "Картинка сторис (URL)", type: "text", placeholder: "https://… или из медиатеки / AI" },
       { key: "caption", label: "Подпись", type: "textarea", placeholder: "Текст сторис\n---\nСледующий в очереди (разделитель ---)" },
       { key: "link", label: "Ссылка", type: "text" },
       { key: "poll", label: "Опрос (вопрос + варианты, по строке)", type: "textarea", placeholder: "Что интереснее?\nВариант А\nВариант Б" },

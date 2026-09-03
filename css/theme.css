@@ -535,7 +535,8 @@ body.is-lk .input, body.is-lk .select, body.is-lk .textarea {
   padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid rgba(255,255,255,.06);
 }
-.lk-side-trial { font-size: 11px; color: #9aa6bc; margin-bottom: 8px; }
+.lk-side-trial { font-size: 11px; color: #9aa6bc; margin-bottom: 8px; text-decoration: none; display: block; }
+.lk-side-trial:hover { color: #c8d0df; }
 .lk-side-logout { width: 100%; color: #c8d0df !important; border-color: rgba(255,255,255,.12) !important; }
 .lk-bar {
   display: none;
@@ -550,7 +551,12 @@ body.is-lk .input, body.is-lk .select, body.is-lk .textarea {
 .lk-prim { display: none; }
 .lk-sheet { display: none !important; }
 .lk-bar-end { display: flex; align-items: center; gap: 12px; margin-left: auto; }
-.lk-trial { font-size: 12px; color: #9c9890; white-space: nowrap; }
+.lk-trial { font-size: 12px; color: #9c9890; white-space: nowrap; text-decoration: none; }
+.lk-trial:hover { color: var(--ink, #315cff); }
+.lk-pending-pay {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  padding: 8px 16px; background: #fff8e8; border-bottom: 1px solid #f0e0b8; font-size: 13px;
+}
 .lk-bal {
   color: #fff; font-weight: 700; font-variant-numeric: tabular-nums;
   font-size: 13.5px; text-decoration: none;

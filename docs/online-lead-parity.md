@@ -137,14 +137,15 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 ### 2.4 Compose (`/compose`)
 | # | OL | OnLead | Статус |
 |---|-----|--------|--------|
-| 1 | Редактор поста/сторис/reels | Текст + VK wall | 🟡 |
+| 1 | Редактор поста/сторис/reels | Стена + сторис (фото) | 🟡 |
 | 2 | Multi-channel, schedule, AI adapt | VK + расписание + AI текст | 🟡 |
 | 3 | Watermarks, rubrics | watermarks в настройках + compose | 🟡 |
 
 - [x] Редактор, schedule, publish VK
 - [x] AI-адаптация текста (`/api/posts/:id/ai-text`)
 - [x] Watermarks (текст при publish)
-- [ ] Rubrics, stories/reels
+- [x] Publish as story (фото из медиатеки)
+- [ ] Rubrics, reels
 
 ### 2.5 Медиатека (`/media`)
 - [x] Глобальная медиатека (`/api/media`, grid UI)

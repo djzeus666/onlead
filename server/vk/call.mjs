@@ -21,17 +21,24 @@ async function vkCallOnce(method, params, accessToken, doFetch) {
   }
   let res;
   try {
+    const ctrl = typeof AbortSignal !== 'undefined' && AbortSignal.timeout
+      ? AbortSignal.timeout(25000)
+      : undefined;
     res = await doFetch(`${VK_API}/${method}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body,
+      signal: ctrl,
     });
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     const cause = err instanceof Error && err.cause instanceof Error ? err.cause.message : '';
+    const timedOut = err?.name === 'TimeoutError' || /aborted|timeout/i.test(reason);
     throw Object.assign(
-      new Error(`VK API недоступен (${cause || reason}). Проверьте интернет/VPN и TLS.`),
-      { code: 'VK_NETWORK', retryable: true },
+      new Error(timedOut
+        ? 'VK API не ответил вовремя. Повторим шаг.'
+        : `VK API недоступен (${cause || reason}). Проверьте интернет/VPN и TLS.`),
+      { code: timedOut ? 'VK_TIMEOUT' : 'VK_NETWORK', retryable: true },
     );
   }
   const json = await res.json();

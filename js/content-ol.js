@@ -276,7 +276,7 @@ OnLead.loadContentMediaGrid = async function loadContentMediaGrid() {
         <div class="cnt-ph-actions">
           <button type="button" class="btn btn-ghost btn-sm" data-act="cnt-copy-url" data-url="${OnLead.esc(i.url)}">URL</button>
           ${i.name && i.source === "upload" ? `<button type="button" class="btn btn-ghost btn-sm" data-act="cnt-del-media" data-name="${OnLead.esc(i.name)}">×</button>` : ""}
-          <a class="btn btn-ghost btn-sm" href="#/office/compose">В пост</a>
+          <button type="button" class="btn btn-ghost btn-sm" data-act="ai-use-compose" data-url="${OnLead.esc(i.url)}">В пост</button>
         </div>
       </div>`).join("")}</div>`;
   } catch (err) {

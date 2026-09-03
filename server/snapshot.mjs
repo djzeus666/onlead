@@ -101,6 +101,7 @@ export function snapshot(scope) {
         tgPlan: p.tgPlan || '',
         months: p.months || 1,
         createdAt: p.createdAt,
+        confirmationUrl: p.confirmationUrl || '',
       })),
     leadgen: publicLeadgen(getLeadgenConfig(dataId), dataId),
     leadgenMatches: (db.leadgenMatches || []).filter((m) => m.userId === dataId).slice(0, 200),

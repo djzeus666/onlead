@@ -104,7 +104,8 @@ OnLead.billingOlPage = function billingOlPage(state) {
         ${per}
         <p class="muted">${esc(p.hint)}</p>
         <p class="muted bill-plan-tools">${toolCount} инструментов в пакете</p>
-        <button class="btn btn-primary btn-block" type="button" data-act="buy-pack" data-id="${p.id}" data-m="${months}" data-amount="${price}">${active ? "Подключено" : "Выбрать тариф"}</button>
+        <button class="btn ${active ? "btn-ghost" : "btn-primary"} btn-block" type="button" data-act="buy-pack" data-id="${p.id}" data-m="${months}" data-amount="${price}">${active ? "Продлить" : "Выбрать тариф"}</button>
+        ${active ? `<p class="muted" style="margin:8px 0 0;font-size:12px;text-align:center">Тариф уже активен — кнопка продлевает срок</p>` : `<p class="muted" style="margin:8px 0 0;font-size:12px;text-align:center">${toolCount} инструментов · ${months === 1 ? "1 месяц" : months + " мес."}</p>`}
       </article>`;
     }).join("")}</div>
   </section>`;

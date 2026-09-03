@@ -42,10 +42,12 @@ OnLead.parserPaywall = function parserPaywall(state, slug) {
     <span class="chip">Не активирован</span>
     <h3 style="margin-top:8px">${OnLead.esc(t.name)}</h3>
     <p>${OnLead.esc(t.summary)}</p>
+    <p class="muted" style="font-size:12px;margin:0 0 8px">Сразу в работу — чаще берут 1 месяц.</p>
     <div class="toolbar">
       ${OnLead.PERIODS.map((p) => {
         const price = Math.round(t.price * p.id * (1 - p.discount));
-        return `<button type="button" class="btn btn-ghost" data-act="buy-tool" data-slug="${OnLead.esc(slug)}" data-m="${p.id}" data-amount="${price}">${p.label} · ${price} ₽</button>`;
+        const primary = p.id === 1;
+        return `<button type="button" class="btn ${primary ? "btn-primary" : "btn-ghost"}" data-act="buy-tool" data-slug="${OnLead.esc(slug)}" data-m="${p.id}" data-amount="${price}">${primary ? `Подключить за ${price} ₽` : `${p.label} · ${price} ₽`}</button>`;
       }).join("")}
     </div>
   </div>`;

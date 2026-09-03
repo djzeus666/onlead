@@ -11,6 +11,7 @@ import { postingDue, stepDue, withinSendHour, storiesDue } from './schedule.mjs'
 import { vkDiscoverFriendsPosts, vkDiscoverWallPosts, vkResolveOwnerId, vkCreateNeuroComment } from './vk/neurocomment.mjs';
 import { runMasslikeStep } from './vk/masslike.mjs';
 import { vkScanGroupForPhrases } from './vk/leadgen.mjs';
+import { sleep } from './vk/call.mjs';
 import { vkPublishWall } from './vk/adapter.mjs';
 import { vkPublishStory, vkStoryStats } from './vk/stories.mjs';
 import { tickLeadgen } from './leadgen.mjs';
@@ -1055,10 +1056,13 @@ export async function runCampaignStep(campaign) {
     return { ok: false, message: `Нет исполнителя для ${slug}` };
   } catch (err) {
     const raw = err instanceof Error ? err.message : String(err);
+    const retryable = !!(err && err.retryable);
     return {
       ok: false,
-      message: 'Не удалось выполнить шаг',
-      adminMessage: vkGrowthErrorHint(raw),
+      skip: retryable,
+      retryable,
+      message: retryable ? 'VK временно недоступен — повторим шаг' : 'Не удалось выполнить шаг',
+      adminMessage: vkGrowthErrorHint(raw, err?.code) || raw,
     };
   }
 }
@@ -1118,7 +1122,7 @@ export function applyCampaignResult(campaignId, result) {
       return;
     }
     if (result.ok) cam.stats.ok += 1;
-    else cam.stats.fail += 1;
+    else if (!result.retryable) cam.stats.fail += 1;
     cam.stats.lastMessage = userMsg;
     if (adminMsg) cam.stats.lastAdminMessage = adminMsg;
     cam.stats.updatedAt = nowIso;
@@ -1221,8 +1225,22 @@ export async function tick() {
     await tickTrialEndingEmails();
     tickBackup();
     await tickHousekeep();
-    const db = load();
-    const running = db.campaigns.filter((c) => c.status === 'running');
+    const STALE_MS = 45 * 60 * 1000;
+    const nowMs = Date.now();
+    mutate((d) => {
+      for (const cam of d.campaigns || []) {
+        if (cam.status !== 'running') continue;
+        const updated = Date.parse(cam.stats?.updatedAt || '') || Number(cam.created) || 0;
+        if (updated && nowMs - updated > STALE_MS) {
+          cam.status = 'error';
+          cam.stats = cam.stats || {};
+          cam.stats.lastMessage = 'Задача зависла без прогресса и остановлена. Запустите снова.';
+          cam.stats.updatedAt = new Date().toISOString();
+        }
+      }
+    });
+    const db2 = load();
+    const running = db2.campaigns.filter((c) => c.status === 'running');
     for (const c of running.slice(0, 3)) {
       const result = await runCampaignStep(c);
       applyCampaignResult(c.id, result);

@@ -66,8 +66,8 @@ OnLead.choosePayMethod = function choosePayMethod({ amount, balance }) {
         <h3>Как оплатить</h3>
         <p>${need ? `К оплате ${need.toLocaleString("ru-RU")} ₽. ` : ""}На счёте кабинета ${have.toLocaleString("ru-RU")} ₽.${enough ? "" : " Не хватает — пополните баланс или оплатите картой."}</p>
         <div class="pay-modal-acts">
-          <button type="button" class="btn btn-primary" data-pay="balance" ${enough ? "" : "disabled"}>Списать со счёта</button>
-          <button type="button" class="btn btn-ink" data-pay="yookassa">Карта / СБП · ЮKassa</button>
+          <button type="button" class="btn ${enough ? "btn-primary" : "btn-ghost"}" data-pay="balance" ${enough ? "" : "disabled"}>Списать со счёта</button>
+          <button type="button" class="btn ${enough ? "btn-ink" : "btn-primary"}" data-pay="yookassa">Карта / СБП · ЮKassa</button>
           <button type="button" class="btn btn-ghost" data-pay="cancel">Отмена</button>
         </div>
       </div>`;
@@ -88,7 +88,7 @@ OnLead.choosePayMethod = function choosePayMethod({ amount, balance }) {
     });
     document.addEventListener("keydown", onKey);
     document.body.appendChild(host);
-    host.querySelector("[data-pay=yookassa]")?.focus();
+    host.querySelector(enough ? "[data-pay=balance]" : "[data-pay=yookassa]")?.focus();
   });
 }
 
