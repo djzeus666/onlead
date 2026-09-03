@@ -1,12 +1,68 @@
-import { load, mutate } from '../db.mjs';
+import { load, mutate, toolOn } from '../db.mjs';
 import {
   analyticsReport, publicCabinet, patchCabinet, teamPayload,
   inviteTeamMember, patchTeamMember, removeTeamMember,
+  AI_AGENT_CARDS,
 } from '../cabinet.mjs';
 import { send, readBody, requireUser, publicOrigin } from '../http-api.mjs';
+import { generateAiChat, readAiConfig } from '../ai.mjs';
+import { rateLimitHit, RATE, clientIp } from '../hardening.mjs';
+
+const ASSIST_PROMPTS = {
+  'content-studio': 'Ты помощник контент-студии OnLead. Помоги с нишей, тоном бренда и темами постов VK на 7–30 дней. Отвечай кратко по-русски, списками.',
+  'ai-images': 'Ты помощник генерации картинок для VK. Улучшай промпты обложек и креативов. Отвечай по-русски, одним улучшенным промптом и 2 альтернативами.',
+  'ai-lead': 'Ты помощник AI лид-менеджера VK. Помоги с оффером, тоном ЛС и шаблоном ({name}). Коротко по-русски.',
+  neurocomment: 'Ты помощник нейрокомментариев VK. Подскажи тон, темы и примеры уместных комментариев без спама. По-русски.',
+};
 
 export async function handle(ctx) {
   const { req, res, method, path, url } = ctx;
+
+  if (method === 'GET' && path === '/api/cabinet/agents') {
+    const u = requireUser(req, res);
+    if (!u) return true;
+    const db = load();
+    const user = db.users.find((x) => x.id === u.id);
+    send(res, 200, {
+      agents: AI_AGENT_CARDS.map((c) => ({
+        ...c,
+        unlocked: c.slug ? toolOn(user, c.slug, db.settings) : true,
+      })),
+    });
+    return true;
+  }
+
+  if (method === 'POST' && path === '/api/ai/assist') {
+    const u = requireUser(req, res);
+    if (!u) return true;
+    const hit = rateLimitHit(`ai-assist:${u.id}:${clientIp(req)}`, RATE.ai.max, RATE.ai.windowMs);
+    if (!hit.ok) {
+      send(res, 429, { error: 'Слишком много запросов. Подождите минуту.' }, { 'Retry-After': String(hit.retryAfter || 60) });
+      return true;
+    }
+    const body = await readBody(req);
+    const agent = String(body.agent || '').trim();
+    const message = String(body.message || '').trim().slice(0, 2000);
+    if (!message) {
+      send(res, 400, { error: 'Пустой вопрос' });
+      return true;
+    }
+    const system = ASSIST_PROMPTS[agent] || 'Ты помощник OnLead. Отвечай кратко по-русски.';
+    try {
+      const { text } = await generateAiChat(
+        [
+          { role: 'system', content: system },
+          { role: 'user', content: message },
+        ],
+        readAiConfig(load().settings),
+        { maxTokens: 400, temperature: 0.6 },
+      );
+      send(res, 200, { text: String(text || '').trim() });
+    } catch (err) {
+      send(res, 502, { error: err instanceof Error ? err.message : 'AI недоступен' });
+    }
+    return true;
+  }
 
   if (method === 'GET' && path === '/api/analytics') {
     const u = requireUser(req, res);

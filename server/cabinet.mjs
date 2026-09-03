@@ -323,11 +323,11 @@ export function findPendingTeamInvite(db, token, email) {
 }
 
 export const AI_AGENT_CARDS = [
+  { id: 'content', title: 'Контент-студия', tagline: 'Профиль → ниша → план на 7–30 дней', href: '#/office/content-studio', slug: null, tone: 'sky' },
+  { id: 'image', title: 'AI-картинки', tagline: 'Обложки и креативы · галерея', href: '#/office/ai-images', slug: 'image-ai', tone: 'amber' },
+  { id: 'ai-lead', title: 'AI Лид-менеджер', tagline: 'Диалоги в ЛС, скоринг, CRM', href: '#/office/tools/ai-lead-vk', slug: 'ai-lead-vk', tone: 'violet' },
+  { id: 'neuro', title: 'Нейрокомментарии', tagline: 'AI-комментарии под постами', href: '#/office/tools/neurocomment-vk', slug: 'neurocomment-vk', tone: 'purple' },
   { id: 'leadgen', title: 'Лидоскоп', tagline: 'Ищет заявки в VK', href: '#/office/tools/leadgen-vk', slug: 'leadgen-vk', tone: 'teal' },
-  { id: 'ai-lead', title: 'AI Лид-менеджер', tagline: 'Диалоги и скоринг', href: '#/office/tools/ai-lead-vk', slug: 'ai-lead-vk', tone: 'violet' },
-  { id: 'neuro', title: 'Нейрокомментарии', tagline: 'Комментарии под постами', href: '#/office/tools/neurocomment-vk', slug: 'neurocomment-vk', tone: 'purple' },
-  { id: 'image', title: 'AI-картинки', tagline: 'Обложки и креативы', href: '#/office/ai-images', slug: 'image-ai', tone: 'amber' },
-  { id: 'content', title: 'Контент-план', tagline: 'AI-план на неделю', href: '#/office/content-studio', slug: null, tone: 'sky' },
   { id: 'crosspost', title: 'AI-кросспост', tagline: 'Адаптация под площадки', href: '#/office/crosspost', slug: null, tone: 'cyan' },
   { id: 'compose', title: 'Редактор постов', tagline: 'VK + расписание', href: '#/office/compose', slug: null, tone: 'emerald' },
   { id: 'rss', title: 'RSS Autopilot', tagline: 'Лента → черновики', href: '#/office/rss', slug: null, tone: 'rose' },

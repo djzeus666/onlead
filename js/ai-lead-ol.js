@@ -112,9 +112,10 @@ OnLead.aiLeadOlPage = function aiLeadOlPage(state) {
   </div>` : "";
 
   return `<div class="al-ol">
+    ${OnLead.aiWorkstationShell ? OnLead.aiWorkstationShell("ai-lead", state) : ""}
     <div class="ol-page-head al-head">
       <div>
-        <a class="ol-back" href="#/office/tools/subscribed">← VK-инструменты</a>
+        <a class="ol-back" href="#/office/ai-agents">← AI-сотрудники</a>
         <h1>AI Лид-менеджер</h1>
         <p class="muted ol-page-head__lead">Прогрев в ЛС VK от вашего имени. AI переписывает шаблон; успешные диалоги уходят в CRM.</p>
       </div>

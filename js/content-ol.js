@@ -302,8 +302,9 @@ OnLead.contentOlStudioPage = function contentOlStudioPage(state, path) {
   }
 
   return `<div class="cnt-ol">
+    ${OnLead.aiWorkstationShell ? OnLead.aiWorkstationShell("content-studio", state) : ""}
     ${nav}
-    <div class="h-row"><div><p class="cnt-kicker">AI-контент</p><h1>Контент-студия</h1>
+    <div class="h-row"><div><p class="cnt-kicker">Нейросотрудник</p><h1>Контент-студия</h1>
       <p class="muted">Мастер: профиль → ниша → план на 7 / 14 / 30 дней.</p></div></div>
     ${stepNav}
     ${body}

@@ -310,8 +310,8 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 
 | Workstation | OL route | OnLead | Статус |
 |-------------|----------|--------|--------|
-| Команда агентов | `/ai-agents` | `#/office/ai-agents` (карточки-ссылки) | 🟡 |
-| Content Studio | `/content-studio` | `#/office/content-studio` | 🟡 |
+| Команда агентов | `/ai-agents` | `#/office/ai-agents` (hub + live stats + shell) | 🟢 |
+| Content Studio | `/content-studio` | `#/office/content-studio` (+ workstation shell) | 🟢 |
 | Avito AI | `/avito` | — | ❌ out-of-scope |
 | SEO-страницы | `/seo-pages` | — | ❌ out-of-scope |
 | AI-аудит сайта | `/site-audit` | — | ❌ out-of-scope |
@@ -320,7 +320,7 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 | Конкуренты | `/competitors` | — | ❌ out-of-scope |
 | Reels | `/compose` reels | — | ❌ out-of-scope |
 
-**Примечание:** OnLead имеет `image-ai`, AI в VK-инструментах и hub `/ai-agents` — не полноценные OL workstations с чатом.
+**Примечание:** Топ-4 станции (Content Studio, AI-картинки, AI Lead, Нейрокомментарии) имеют общий chrome «Нейросотрудник», live-метрики на hub и `POST /api/ai/assist`. Полноценные OL multi-agent чаты Avito/SEO — out of scope.
 
 **Out of scope:** Avito, SEO-страницы, site-audit, proposals, ad-kit, competitors, **Reels** — не планируем в OnLead, пока нет явного продуктового запроса. Закрыты как out-of-scope, не как «долг parity».
 
@@ -357,7 +357,7 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 8. **Главная + Billing** — dashboard parity ✅
 9. ~~**Контент** — compose + content board~~ 🟡 MVP
 10. ~~**Автопубликация** — RSS, crosspost, webhook~~ 🟡 MVP
-11. **Нейросотрудники** — hub ✅, workstations по приоритету
+11. **Нейросотрудники** — hub + топ-4 workstation shell ✅; OOS Avito/SEO/…
 12. ~~**Кабинет** — analytics, team, settings~~ ✅ team + workspace
 13. **Workflow** — `/workflow` OL parity ✅ MVP
 14. **Контент polish** — календарь ✅, watermarks ✅, VK media attach ✅ (MVP)

@@ -23,7 +23,11 @@
 .cab-list-row b { flex: 1; }
 .cab-add { display: flex; flex-direction: column; gap: 8px; }
 .cab-agents { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 14px; }
+.cab-agents-featured { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.cab-agents-h { font-size: 14px; margin: 20px 0 0; font-weight: 600; }
 .cab-agent { text-decoration: none; color: inherit; padding: 16px; border-top: 3px solid var(--line); }
+.cab-agent-featured { min-height: 132px; }
+.cab-agent-metric { font-size: 12px; margin: 6px 0 0; color: var(--text); }
 .cab-agent-teal { border-top-color: #14b8a6; }
 .cab-agent-violet { border-top-color: #a78bfa; }
 .cab-agent-purple { border-top-color: #c084fc; }
@@ -33,6 +37,17 @@
 .cab-agent-emerald { border-top-color: #34d399; }
 .cab-agent-rose { border-top-color: #fb7185; }
 .cab-agent-st { font-size: 11px; color: var(--muted); }
+
+.ws-shell { margin-bottom: 12px; }
+.ws-shell-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.ws-shell-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ws-kicker { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.ws-stat { font-size: 12px; }
+.ws-assist { margin: 0 0 12px; padding: 10px 12px; }
+.ws-assist summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+.ws-assist-form { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: flex-start; }
+.ws-assist-form textarea { flex: 1 1 220px; min-height: 56px; }
+.ws-assist-out { margin-top: 8px; white-space: pre-wrap; font-size: 13px; }
 .chip-ok { background: #dcfce7; color: #166534; }
 .chip-err { background: #fee2e2; color: #991b1b; }
 .wf-stages { display: flex; gap: 10px; overflow-x: auto; padding: 8px 0; margin: 12px 0; }

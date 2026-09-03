@@ -37,8 +37,9 @@ OnLead.aiImagesOlPage = function aiImagesOlPage(state, path) {
     : `<div class="card muted">Пока нет картинок — сгенерируйте первую или загрузите в <a href="#/office/media">медиатеку</a>.</div>`;
 
   return `<div class="ai-ol">
+    ${OnLead.aiWorkstationShell ? OnLead.aiWorkstationShell("ai-images", state) : ""}
     ${nav}
-    <div class="h-row"><div><p class="ai-kicker">Контент</p><h1>AI-картинки</h1>
+    <div class="h-row"><div><p class="ai-kicker">Нейросотрудник</p><h1>AI-картинки</h1>
       <p class="muted">Генерация обложек и креативов для постов VK · стили и галерея.</p></div></div>
     <div class="ai-layout">
       <form id="ai-images-form" class="card ai-form">

@@ -290,32 +290,32 @@ OnLead.teamOlPage = function teamOlPage(state, path) {
 OnLead.aiAgentsOlPage = function aiAgentsOlPage(state, path) {
   const esc = OnLead.esc || ((s) => String(s ?? ""));
   const nav = OnLead.cabinetOlNav(path);
-  const cards = [
-    { title: "Лидоскоп", tagline: "Ищет заявки в VK", href: "#/office/tools/leadgen-vk", slug: "leadgen-vk", tone: "teal" },
-    { title: "AI Лид-менеджер", tagline: "Диалоги и скоринг", href: "#/office/tools/ai-lead-vk", slug: "ai-lead-vk", tone: "violet" },
-    { title: "Нейрокомментарии", tagline: "AI под постами", href: "#/office/tools/neurocomment-vk", slug: "neurocomment-vk", tone: "purple" },
-    { title: "AI-картинки", tagline: "Обложки и креативы", href: "#/office/ai-images", slug: "image-ai", tone: "amber" },
-    { title: "Контент-план", tagline: "План на 7–30 дней", href: "#/office/content-studio", slug: null, tone: "sky" },
-    { title: "AI-кросспост", tagline: "Адаптация текста", href: "#/office/crosspost", slug: null, tone: "cyan" },
-    { title: "Редактор постов", tagline: "VK + расписание", href: "#/office/compose", slug: null, tone: "emerald" },
-    { title: "RSS Autopilot", tagline: "Лента → черновики", href: "#/office/rss", slug: null, tone: "rose" },
-  ];
+  const cards = OnLead.AI_WORKSTATIONS || [];
+  const featured = cards.filter((a) => a.featured);
+  const rest = cards.filter((a) => !a.featured);
+  const cardHtml = (a) => {
+    const on = a.slug ? OnLead.toolOn(state, a.slug) : true;
+    const st = OnLead.aiWorkstationStat ? OnLead.aiWorkstationStat(state, a.id) : "";
+    return `<a class="card cab-agent cab-agent-${a.tone}${a.featured ? " cab-agent-featured" : ""}" href="${a.href}">
+      <b>${esc(a.title)}</b>
+      <p class="muted">${esc(a.tagline)}</p>
+      ${st ? `<p class="cab-agent-metric">${esc(st)}</p>` : ""}
+      <span class="cab-agent-st">${a.slug ? (on ? "В работе" : "Подключите в тарифах") : "Открыть"}</span>
+    </a>`;
+  };
   return `<div class="cab-ol">
     ${nav}
     <div class="h-row"><div><p class="cab-kicker">Нейросотрудники</p><h1>AI-станции</h1>
-      <p class="muted">Готовые AI-инструменты OnLead — каждый закрывает свою задачу в воронке.</p></div></div>
-    <div class="cab-agents">${cards.map((a) => {
-      const on = a.slug ? OnLead.toolOn(state, a.slug) : true;
-      return `<a class="card cab-agent cab-agent-${a.tone}" href="${a.href}">
-        <b>${esc(a.title)}</b>
-        <p class="muted">${esc(a.tagline)}</p>
-        <span class="cab-agent-st">${a.slug ? (on ? "В работе" : "Подключите в тарифах") : "Открыть"}</span>
-      </a>`;
-    }).join("")}</div>
+      <p class="muted">Рабочие станции с AI-помощником — не просто ссылки, а готовые пайплайны воронки.</p></div></div>
+    <h2 class="cab-agents-h">Основные станции</h2>
+    <div class="cab-agents cab-agents-featured">${featured.map(cardHtml).join("")}</div>
+    <h2 class="cab-agents-h">Ещё инструменты</h2>
+    <div class="cab-agents">${rest.map(cardHtml).join("")}</div>
   </div>`;
 };
 
 OnLead.bindCabinetOl = function bindCabinetOl() {
+  OnLead.bindWorkstationAssist?.();
   OnLead.loadAnalyticsDetail?.();
   const teamPath = (OnLead.hashRouteRaw?.() || location.hash.replace(/^#/, "") || "/").replace(/#.*$/, "");
   if (teamPath === "/office/team") {

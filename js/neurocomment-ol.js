@@ -237,8 +237,10 @@ OnLead.neurocommentOlPage = function neurocommentOlPage(state) {
   const faqModal = OnLead._ncFaqOpen ? OnLead.ncFaqModalHtml(OnLead._ncFaqTab || "overview") : "";
 
   return `<div class="nc-ol">
+    ${OnLead.aiWorkstationShell ? OnLead.aiWorkstationShell("neurocomment", state) : ""}
     <div class="ol-page-head nc-head">
       <div>
+        <a class="ol-back" href="#/office/ai-agents">← AI-сотрудники</a>
         <h1>Нейрокомментарии</h1>
         <p class="muted ol-page-head__lead">${cfg.enabled ? "Активен" : "Остановлен"} · AI-комментарии под контекст поста · лимит ${cfg.dailyLimit || 20}/день</p>
       </div>

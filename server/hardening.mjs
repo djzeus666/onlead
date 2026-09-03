@@ -172,4 +172,5 @@ export const RATE = {
   resend: { max: 5, windowMs: 60 * 60 * 1000 },
   lead: { max: 12, windowMs: 10 * 60 * 1000 },
   webhook: { max: 80, windowMs: 60 * 1000 },
+  ai: { max: 20, windowMs: 60 * 1000 },
 };
