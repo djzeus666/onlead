@@ -11,6 +11,17 @@
 | `/opt/onlead/backups` | Off-volume backup rotation |
 | S3 / MinIO (optional) | Remote backup copies |
 
+## Code layout (production image)
+
+| Path | Role |
+| --- | --- |
+| `server/index.mjs` | HTTP host + static; no business routes inline |
+| `server/routes/*.mjs` | 16 API modules via `dispatch.mjs` (+ RBAC, `headersSent` guard) |
+| `js/app.js` | SPA mount / render / office routing |
+| `js/*-ol.js` | Feature UI modules |
+| `js/click-*-ol.js` | Domain `data-act` handlers |
+| `js/office-click-ol.js` | Click dispatcher + tool form submit |
+
 ## Boot requirements
 
 Production (`NODE_ENV=production`) **requires** built-in SQLite. The container sets:

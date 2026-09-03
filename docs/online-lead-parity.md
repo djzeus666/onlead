@@ -1,7 +1,7 @@
 # Online Lead → OnLead: parity backlog
 
 Источник эталона: `post2post/apps/web` (IA из `lib/products.ts`, UI/API по маршрутам).
-OnLead: `js/catalog.js`, `js/app.js`, `server/index.mjs`.
+OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + domain services.
 
 **Легенда статуса:** ✅ есть · 🟡 частично · ❌ нет · 🔍 нужна сверка UI
 
@@ -53,7 +53,7 @@ OnLead: `js/catalog.js`, `js/app.js`, `server/index.mjs`.
 - [ ] Слоты / аренда аккаунтов (OL может иметь checkout)
 
 **Файлы OL:** `connections/*`, `connect-account-modal.tsx`  
-**Файлы OnLead:** `js/app.js` (`accounts`), `server/vk/*`
+**Файлы OnLead:** `js/accounts-ol.js`, `js/vk-connect-ol.js`, `server/vk/*`
 
 ---
 

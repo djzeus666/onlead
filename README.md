@@ -10,11 +10,19 @@ Admin: `admin@onlead.local` / `admin1234`
 
 VK apps (same as [online-lead.ru](https://online-lead.ru)): base `5530956`, messages `6463690`, redirect `https://oauth.vk.com/blank.html`.
 
-## Storage
+## Architecture
 
-Production uses **built-in Node.js SQLite** (`node:sqlite` with `--experimental-sqlite`). Data lives in `data/onlead.sqlite` with a normalized schema (**v10**). `data/store.json` is a mirror for backups and rollback only — not the primary source in production.
+| Layer | Location |
+| --- | --- |
+| API host | `server/index.mjs` (~113 lines) → `server/routes/dispatch.mjs` + **16** route modules |
+| Domain logic | `server/*.mjs` (billing, leadgen, jobs, landings, tg, …) |
+| SPA shell | `js/app.js` (mount / `render` / `officePage` / binders) |
+| UI modules | `js/*-ol.js` (**36** feature modules) |
+| Click handlers | `js/click-*-ol.js` (**9** domains) + `js/office-click-ol.js` dispatcher |
+| Catalog / prices | `js/catalog.js` |
+| Router | `js/router.js` |
 
-Local development falls back to JSON if SQLite is unavailable.
+Storage: **SQLite schema v10** (`data/onlead.sqlite`). `data/store.json` is a backup mirror only.
 
 ## Local run
 
@@ -22,7 +30,7 @@ Local development falls back to JSON if SQLite is unavailable.
 npm start
 ```
 
-Open http://127.0.0.1:4173/ (canonical public URL in code: `https://onlead.m360-ural.online`).
+Open http://127.0.0.1:4173/ (canonical public URL: `https://onlead.m360-ural.online`).
 
 ## Tests
 
@@ -31,7 +39,7 @@ npm test
 npm run test:e2e
 ```
 
-**209** unit/smoke tests + **5** Playwright E2E scenarios (`server/**/*.test.mjs`, `e2e/`): billing, CRM, VK tools, landings, workflow, team workspace, RBAC, hash routing, API wiring.
+**209** unit/smoke tests + **5** Playwright E2E scenarios: billing, CRM, VK tools, landings, workflow, team workspace, RBAC, hash routing, API wiring.
 
 ## Deploy to VPS
 

@@ -345,7 +345,7 @@ async function render() {
       try {
         const page = await OnLead.api("/api/public/landings/host");
         if (page?.id) {
-          await renderPublicLanding("/p/" + page.id, root);
+          await OnLead.renderPublicLanding("/p/" + page.id, root);
           return;
         }
       } catch { /* marketing site */ }
@@ -378,10 +378,10 @@ async function render() {
     }
     if (seq !== renderSeq) return;
     const paidReturn = isPaidReturn();
-    const billing = consumePaidReturn();
+    const billing = OnLead.consumePaidReturn();
     if (paidReturn || path === "/office/balance") await billing;
     if (seq !== renderSeq) return;
-    root.innerHTML = officeShell(path);
+    root.innerHTML = OnLead.officeShell(path);
     bindOffice();
     if (!paidReturn && path !== "/office/balance") {
       billing.then((last) => {
@@ -389,18 +389,18 @@ async function render() {
         if (last?.applied) paintOfficeBalance();
       }).catch(() => {});
     }
-    if (path === "/office/accounts") await consumePendingVkToken();
+    if (path === "/office/accounts") await OnLead.consumePendingVkToken();
     if (path === "/office/leadgen" || path === "/office/tools/leadgen-vk") {
       const lg = OnLead.load().leadgen;
-      if (lg?.scanStatus === "running" || lg?.scanStatus === "queued") pollLeadgenScan();
+      if (lg?.scanStatus === "running" || lg?.scanStatus === "queued") OnLead.pollLeadgenScan();
     }
     if (path.startsWith("/office/tools/") && path !== "/office/tools/leadgen-vk" && path !== "/office/leadgen" && !path.startsWith("/office/tools/lists") && path !== "/office/tools/parsing-accounts-vk" && path !== "/office/tools/parsing-groups-vk" && path !== "/office/tools/subscribed" && path !== "/office/tools/parsers") {
-      loadToolExtras(path.split("/").pop());
+      OnLead.loadToolExtras(path.split("/").pop());
     }
-    if (path.endsWith("/telegram/funnels")) loadTgReceipts();
+    if (path.endsWith("/telegram/funnels")) OnLead.loadTgReceipts();
     const tgFunnelEd = path.match(/\/office\/telegram\/funnels\/([^/]+)$/);
-    if (tgFunnelEd) loadTgFunnelOlData(tgFunnelEd[1]);
-    if (path.endsWith("/landings/media")) loadLandingsMedia();
+    if (tgFunnelEd) OnLead.loadTgFunnelOlData(tgFunnelEd[1]);
+    if (path.endsWith("/landings/media")) OnLead.loadLandingsMedia();
     if (path === "/office/media") OnLead.loadContentMediaGrid?.();
     if (path === "/office/content" && ["calendar", "day", "week"].includes(hashParams().get("view"))) {
       if (!OnLead._calHydrated) {
@@ -420,19 +420,19 @@ async function render() {
     if (path === "/office/analytics") OnLead.loadAnalyticsDetail?.();
     return;
   }
-  if (path === "/login") { root.innerHTML = authPage("login"); bindAuth(); return; }
-  if (path === "/register") { root.innerHTML = authPage("register"); bindAuth(); return; }
-  if (path === "/verify-email") { root.innerHTML = authPage("verify"); bindAuth(); return; }
-  if (path === "/forgot") { root.innerHTML = authPage("forgot"); bindAuth(); return; }
-  if (path === "/reset-password") { root.innerHTML = authPage("reset"); bindAuth(); return; }
+  if (path === "/login") { root.innerHTML = OnLead.authPage("login"); OnLead.bindAuth(); return; }
+  if (path === "/register") { root.innerHTML = OnLead.authPage("register"); OnLead.bindAuth(); return; }
+  if (path === "/verify-email") { root.innerHTML = OnLead.authPage("verify"); OnLead.bindAuth(); return; }
+  if (path === "/forgot") { root.innerHTML = OnLead.authPage("forgot"); OnLead.bindAuth(); return; }
+  if (path === "/reset-password") { root.innerHTML = OnLead.authPage("reset"); OnLead.bindAuth(); return; }
   if (path === "/privacy" || path === "/offer" || path === "/consent") {
     document.title = path === "/offer" ? "Оферта — OnLead" : path === "/consent" ? "Согласие — OnLead" : "Конфиденциальность — OnLead";
     root.innerHTML = (OnLead.legalPage || (() => "<p>Нет документа</p>"))(path.slice(1));
     return;
   }
-  if (path.startsWith("/p/")) { await renderPublicLanding(path, root); return; }
-  if (path.startsWith("/l/")) { await renderPublicLanding(path, root); return; }
-  root.innerHTML = landingPage();
+  if (path.startsWith("/p/")) { await OnLead.renderPublicLanding(path, root); return; }
+  if (path.startsWith("/l/")) { await OnLead.renderPublicLanding(path, root); return; }
+  root.innerHTML = OnLead.landingPage();
   if (section) {
     requestAnimationFrame(() => document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
@@ -441,51 +441,84 @@ OnLead.render = render;
 OnLead.go = go;
 OnLead.confirmDel = confirmDel;
 
-/* ========== LANDING ========== */
-
-/* ========== OFFICE ========== */
-function officeShell(path) { return OnLead.officeShell(path); }
-function setLkNav(open) { return OnLead.setLkNav(open); }
-function hrefPath(href) { return OnLead.hrefPath(href); }
-function navActive(path, href) { return OnLead.navActive(path, href); }
-
-function toolsHub(state) { return OnLead.toolsHub(state); }
-function toolPage(slug, state) { return OnLead.toolPage(slug, state); }
-
 function officePage(path, state) {
   if (path === "/office") return dash(state);
   if (path === "/office/academy" || path.startsWith("/office/academy/")) return academy(path);
-  if (path === "/office/accounts") return accounts(state);
-  if (path === "/office/subscriptions") return subscriptions(state);
-  if (path === "/office/crm") return crm(state);
-  if (path === "/office/content") return content(state, path);
-  if (path === "/office/compose") return compose(state);
-  if (path === "/office/content-studio") return contentStudio(state, path);
-  if (path === "/office/media") return contentMedia(state, path);
-  if (path === "/office/history") return contentHistory(state, path);
-  if (path === "/office/ai-images") return aiImagesPage(state, path);
-  if (path === "/office/automation") return automation(state, path);
-  if (path === "/office/rss") return rssPage(state, path);
-  if (path === "/office/repost") return repostPage(state, path);
-  if (path === "/office/crosspost") return crosspost(state, path);
-  if (path === "/office/analytics") return analytics(state, path);
-  if (path === "/office/settings") return settingsPage(state, path);
-  if (path === "/office/team") return teamPage(state, path);
-  if (path === "/office/workflow") return workflowPage(state, path);
-  if (path === "/office/ai-agents") return aiAgents(state, path);
+  if (path === "/office/accounts") return OnLead.accountsOlPage(state);
+  if (path === "/office/subscriptions") {
+    return OnLead.billingOlPage ? OnLead.billingOlPage(state) : `<div class="card muted">Тарифы загружаются…</div>`;
+  }
+  if (path === "/office/crm") {
+    return OnLead.crmOlPage ? OnLead.crmOlPage(state) : `<div class="card muted">CRM загружается…</div>`;
+  }
+  if (path === "/office/content") {
+    return OnLead.contentOlPage ? OnLead.contentOlPage(state, path) : `<div class="card muted">Контент загружается…</div>`;
+  }
+  if (path === "/office/compose") {
+    return OnLead.composeOlPage ? OnLead.composeOlPage(state) : `<div class="card muted">Редактор загружается…</div>`;
+  }
+  if (path === "/office/content-studio") {
+    return OnLead.contentOlStudioPage ? OnLead.contentOlStudioPage(state, path) : `<div class="card muted">Студия загружается…</div>`;
+  }
+  if (path === "/office/media") {
+    return OnLead.contentOlMediaPage ? OnLead.contentOlMediaPage(state, path) : `<div class="card muted">Медиатека загружается…</div>`;
+  }
+  if (path === "/office/history") {
+    return OnLead.contentOlHistoryPage ? OnLead.contentOlHistoryPage(state, path) : `<div class="card muted">История загружается…</div>`;
+  }
+  if (path === "/office/ai-images") {
+    return OnLead.aiImagesOlPage ? OnLead.aiImagesOlPage(state, path) : `<div class="card muted">AI-картинки загружаются…</div>`;
+  }
+  if (path === "/office/automation") {
+    return OnLead.automationOlPage ? OnLead.automationOlPage(state, path) : `<div class="card muted">Автоматизация загружается…</div>`;
+  }
+  if (path === "/office/rss") {
+    return OnLead.rssOlPage ? OnLead.rssOlPage(state, path) : `<div class="card muted">RSS загружается…</div>`;
+  }
+  if (path === "/office/repost") {
+    return OnLead.repostOlPage ? OnLead.repostOlPage(state, path) : `<div class="card muted">Репосты загружаются…</div>`;
+  }
+  if (path === "/office/crosspost") {
+    return OnLead.crosspostOlPage ? OnLead.crosspostOlPage(state, path) : `<div class="card muted">Кросспост загружается…</div>`;
+  }
+  if (path === "/office/analytics") {
+    return OnLead.analyticsOlPage ? OnLead.analyticsOlPage(state, path) : `<div class="card muted">Аналитика загружается…</div>`;
+  }
+  if (path === "/office/settings") {
+    return OnLead.settingsOlPage ? OnLead.settingsOlPage(state, path) : `<div class="card muted">Настройки загружаются…</div>`;
+  }
+  if (path === "/office/team") {
+    return OnLead.teamOlPage ? OnLead.teamOlPage(state, path) : `<div class="card muted">Команда загружается…</div>`;
+  }
+  if (path === "/office/workflow") {
+    return OnLead.workflowOlPage ? OnLead.workflowOlPage(state, path) : `<div class="card muted">Workflow загружается…</div>`;
+  }
+  if (path === "/office/ai-agents") {
+    return OnLead.aiAgentsOlPage ? OnLead.aiAgentsOlPage(state, path) : `<div class="card muted">AI-сотрудники загружаются…</div>`;
+  }
   if (path === "/office/balance") return balance(state);
   if (path === "/office/referral") return referral(state);
   if (path === "/office/profile") return profile(state);
-  if (path === "/office/tools" || path === "/office/vk-tools") return toolsHub(state);
-  if (path === "/office/tools/subscribed" || path === "/office/tools/parsers") return bundleHub(path.split("/").pop(), state);
-  if (path === "/office/leadgen" || path === "/office/tools/leadgen-vk") return leadgenPage(state);
-  if (path === "/office/neurocomments" || path === "/office/tools/neurocomment-vk") return neurocommentPage(state);
-  if (path === "/office/tools/ai-lead-vk") return aiLeadPage(state);
-  if (path === "/office/tools/lead-vk") return leadVkPage(state);
-  if (path === "/office/tools/lists" || path.startsWith("/office/tools/lists/") || path === "/office/tools/parsing-accounts-vk" || path === "/office/tools/parsing-groups-vk" || path.startsWith("/office/parsers")) return parsers(path, state);
-  if (path.startsWith("/office/tools/")) return toolPage(path.split("/").pop(), state);
-  if (path.startsWith("/office/telegram")) return telegram(path, state);
-  if (path.startsWith("/office/landings")) return landings(path, state);
+  if (path === "/office/tools" || path === "/office/vk-tools") return OnLead.toolsHub(state);
+  if (path === "/office/tools/subscribed" || path === "/office/tools/parsers") return OnLead.bundleHub(path.split("/").pop(), state);
+  if (path === "/office/leadgen" || path === "/office/tools/leadgen-vk") {
+    return OnLead.leadgenOlPage ? OnLead.leadgenOlPage(state) : `<div class="card muted">Лидоскоп недоступен</div>`;
+  }
+  if (path === "/office/neurocomments" || path === "/office/tools/neurocomment-vk") {
+    return OnLead.neurocommentOlPage ? OnLead.neurocommentOlPage(state) : OnLead.toolPage("neurocomment-vk", state);
+  }
+  if (path === "/office/tools/ai-lead-vk") {
+    return OnLead.aiLeadOlPage ? OnLead.aiLeadOlPage(state) : OnLead.toolPage("ai-lead-vk", state);
+  }
+  if (path === "/office/tools/lead-vk") {
+    return OnLead.leadVkOlPage ? OnLead.leadVkOlPage(state) : OnLead.toolPage("lead-vk", state);
+  }
+  if (path === "/office/tools/lists" || path.startsWith("/office/tools/lists/") || path === "/office/tools/parsing-accounts-vk" || path === "/office/tools/parsing-groups-vk" || path.startsWith("/office/parsers")) {
+    return OnLead.parsers(path, state);
+  }
+  if (path.startsWith("/office/tools/")) return OnLead.toolPage(path.split("/").pop(), state);
+  if (path.startsWith("/office/telegram")) return OnLead.telegram(path, state);
+  if (path.startsWith("/office/landings")) return OnLead.landings(path, state);
   return `<h1 class="serif">Страница не найдена</h1>`;
 }
 OnLead.officePage = officePage;
@@ -599,77 +632,6 @@ function academy(path) {
     </article>`).join("")}</div>`;
 }
 
-function accounts(state) { return OnLead.accountsOlPage(state); }
-function channelLabel(c) { return OnLead.channelLabel(c); }
-function subscriptions(state) {
-  if (OnLead.billingOlPage) return OnLead.billingOlPage(state);
-  return `<div class="card muted">Тарифы загружаются…</div>`;
-}
-
-function crm(state) {
-  return OnLead.crmOlPage ? OnLead.crmOlPage(state) : `<div class="card muted">CRM загружается…</div>`;
-}
-
-function content(state, path) {
-  return OnLead.contentOlPage ? OnLead.contentOlPage(state, path) : `<div class="card muted">Контент загружается…</div>`;
-}
-
-function compose(state) {
-  return OnLead.composeOlPage ? OnLead.composeOlPage(state) : `<div class="card muted">Редактор загружается…</div>`;
-}
-
-function contentStudio(state, path) {
-  return OnLead.contentOlStudioPage ? OnLead.contentOlStudioPage(state, path) : `<div class="card muted">Студия загружается…</div>`;
-}
-
-function contentMedia(state, path) {
-  return OnLead.contentOlMediaPage ? OnLead.contentOlMediaPage(state, path) : `<div class="card muted">Медиатека загружается…</div>`;
-}
-
-function contentHistory(state, path) {
-  return OnLead.contentOlHistoryPage ? OnLead.contentOlHistoryPage(state, path) : `<div class="card muted">История загружается…</div>`;
-}
-
-function automation(state, path) {
-  return OnLead.automationOlPage ? OnLead.automationOlPage(state, path) : `<div class="card muted">Автоматизация загружается…</div>`;
-}
-
-function rssPage(state, path) {
-  return OnLead.rssOlPage ? OnLead.rssOlPage(state, path) : `<div class="card muted">RSS загружается…</div>`;
-}
-
-function crosspost(state, path) {
-  return OnLead.crosspostOlPage ? OnLead.crosspostOlPage(state, path) : `<div class="card muted">Кросспост загружается…</div>`;
-}
-
-function repostPage(state, path) {
-  return OnLead.repostOlPage ? OnLead.repostOlPage(state, path) : `<div class="card muted">Репосты загружаются…</div>`;
-}
-
-function workflowPage(state, path) {
-  return OnLead.workflowOlPage ? OnLead.workflowOlPage(state, path) : `<div class="card muted">Workflow загружается…</div>`;
-}
-
-function aiImagesPage(state, path) {
-  return OnLead.aiImagesOlPage ? OnLead.aiImagesOlPage(state, path) : `<div class="card muted">AI-картинки загружаются…</div>`;
-}
-
-function analytics(state, path) {
-  return OnLead.analyticsOlPage ? OnLead.analyticsOlPage(state, path) : `<div class="card muted">Аналитика загружается…</div>`;
-}
-
-function settingsPage(state, path) {
-  return OnLead.settingsOlPage ? OnLead.settingsOlPage(state, path) : `<div class="card muted">Настройки загружаются…</div>`;
-}
-
-function teamPage(state, path) {
-  return OnLead.teamOlPage ? OnLead.teamOlPage(state, path) : `<div class="card muted">Команда загружается…</div>`;
-}
-
-function aiAgents(state, path) {
-  return OnLead.aiAgentsOlPage ? OnLead.aiAgentsOlPage(state, path) : `<div class="card muted">AI-сотрудники загружаются…</div>`;
-}
-
 function balance(state) {
   const live = state.settings?.paymentsLive;
   const pending = (state.pendingPayments || []).map((p) => `
@@ -726,85 +688,6 @@ function profile(state) {
     </div>`;
 }
 
-function fmtLeadgenTime(ts) { return OnLead.fmtLeadgenTime(ts); }
-function highlightLeadgenText(text, phrase) { return OnLead.highlightLeadgenText(text, phrase); }
-function vkGroupHref(g) { return OnLead.vkGroupHref(g); }
-function lgNormId(v) { return OnLead.lgNormId(v); }
-function leadgenCheckedSet(state) { return OnLead.leadgenCheckedSet(state); }
-function syncLeadgenCheckedFromDom() { return OnLead.syncLeadgenCheckedFromDom(); }
-function leadgenGroupRowHtml(g, checked) { return OnLead.leadgenGroupRowHtml(g, checked); }
-function leadgenGroupRows(state) { return OnLead.leadgenGroupRows(state); }
-function lgFilterBtn(key, val, label, current) { return OnLead.lgFilterBtn(key, val, label, current); }
-function leadgenPage(state) {
-  return OnLead.leadgenOlPage ? OnLead.leadgenOlPage(state) : `<div class="card muted">Лидоскоп недоступен</div>`;
-}
-function neurocommentPage(state) {
-  return OnLead.neurocommentOlPage ? OnLead.neurocommentOlPage(state) : toolPage("neurocomment-vk", state);
-}
-function aiLeadPage(state) {
-  return OnLead.aiLeadOlPage ? OnLead.aiLeadOlPage(state) : toolPage("ai-lead-vk", state);
-}
-function leadVkPage(state) {
-  return OnLead.leadVkOlPage ? OnLead.leadVkOlPage(state) : toolPage("lead-vk", state);
-}
-function bundleHub(id, state) { return OnLead.bundleHub(id, state); }
-function parserPaywall(state, slug) { return OnLead.parserPaywall(state, slug); }
-function parsers(path, state) { return OnLead.parsers(path, state); }
-function sectionNav(id, path) { return OnLead.sectionNav(id, path); }
-function telegram(path, state) { return OnLead.telegram(path, state); }
-function landings(path, state) { return OnLead.landings(path, state); }
-function landingPublicUrl(id, page) { return OnLead.landingPublicUrl(id, page); }
-function landingFromForm(form) { return OnLead.landingFromForm(form); }
-function landingPageView(page, opts) { return OnLead.landingPageView(page, opts); }
-function landingEditor(page, state) { return OnLead.landingEditor(page, state); }
-function funnelSecHtml(s) { return OnLead.funnelSecHtml(s); }
-
-function landingPage() { return OnLead.landingPage(); }
-function authPage(mode) { return OnLead.authPage(mode); }
-function bindAuth() { return OnLead.bindAuth(); }
-function choosePayMethod(opts) { return OnLead.choosePayMethod(opts); }
-async function startCheckout(body, btn) { return OnLead.startCheckout(body, btn); }
-async function consumePendingVkToken() { return OnLead.consumePendingVkToken(); }
-async function consumePaidReturn() { return OnLead.consumePaidReturn(); }
-async function finishVkConnect(data) { return OnLead.finishVkConnect(data); }
-async function startVkOAuth() { return OnLead.startVkOAuth(); }
-async function startVkMessagesOAuth(accountId) { return OnLead.startVkMessagesOAuth(accountId); }
-async function saveVkMessagesToken(accountId) { return OnLead.saveVkMessagesToken(accountId); }
-function openVkConnectModal() { return OnLead.openVkConnectModal(); }
-function closeVkConnectModal() { return OnLead.closeVkConnectModal(); }
-function openVkEventLogModal() { return OnLead.openVkEventLogModal(); }
-function closeVkEventLogModal() { return OnLead.closeVkEventLogModal(); }
-function saveVkTokenFromPaste() { return OnLead.saveVkTokenFromPaste(); }
-async function refreshVkChannels(accountId, statusEl) { return OnLead.refreshVkChannels(accountId, statusEl); }
-async function saveLeadgenCfg() { return OnLead.saveLeadgenCfg(); }
-async function loadLeadgenGroups() { return OnLead.loadLeadgenGroups(); }
-async function saveLeadgenGroups(refresh, gen) { return OnLead.saveLeadgenGroups(refresh, gen); }
-function bindLeadgenUi() { return OnLead.bindLeadgenUi(); }
-async function onLeadgenAddPhrase(e) { return OnLead.onLeadgenAddPhrase(e); }
-async function onLeadgenExclude(e) { return OnLead.onLeadgenExclude(e); }
-async function removeLeadgenPhrase(id) { return OnLead.removeLeadgenPhrase(id); }
-async function removeLeadgenExclude(text) { return OnLead.removeLeadgenExclude(text); }
-async function addLeadgenNiche(id) { return OnLead.addLeadgenNiche(id); }
-async function startLeadgenScan() { return OnLead.startLeadgenScan(); }
-function applyLeadgenGroupChecks(check) { return OnLead.applyLeadgenGroupChecks(check); }
-
-function syncAutopostPreview() { return OnLead.syncAutopostPreview(); }
-async function loadToolExtras(slug) { return OnLead.loadToolExtras(slug); }
-async function loadLandingsMedia() { return OnLead.loadLandingsMedia(); }
-async function onMediaUpload(e) { return OnLead.onMediaUpload(e); }
-async function loadTgFunnelOlData(id) { return OnLead.loadTgFunnelOlData(id); }
-async function loadTgReceipts() { return OnLead.loadTgReceipts(); }
-async function saveOlLandingEditor() { return OnLead.saveOlLandingEditor(); }
-async function createLanding(name, template) { return OnLead.createLanding(name, template); }
-async function onLandingCreate(e) { return OnLead.onLandingCreate(e); }
-function bindTelegramForms() { return OnLead.bindTelegramForms(); }
-function bindLandingEditor() { return OnLead.bindLandingEditor(); }
-async function onLandingSave(e) { return OnLead.onLandingSave(e); }
-async function renderPublicLanding(path, root) { return OnLead.renderPublicLanding(path, root); }
-async function onParse(e) { return OnLead.onParse(e); }
-function personName(p) { return OnLead.personName(p); }
-async function loadOpenList() { return OnLead.loadOpenList(); }
-
 function bindOffice() {
   const root = document.getElementById("app");
   root.onclick = (e) => OnLead.handleOfficeClick?.(e);
@@ -812,12 +695,12 @@ function bindOffice() {
   $("#tool-form")?.addEventListener("submit", (e) => OnLead.onToolSubmit?.(e));
   $("#tool-form [name=accountId]")?.addEventListener("change", () => {
     const slug = $("#tool-form")?.dataset.slug;
-    if (slug) loadToolExtras(slug);
+    if (slug) OnLead.loadToolExtras(slug);
   });
-  $("#parse-form")?.addEventListener("submit", onParse);
-  $("#landing-form")?.addEventListener("submit", onLandingCreate);
-  bindLandingEditor();
-  bindTelegramForms();
+  $("#parse-form")?.addEventListener("submit", (e) => OnLead.onParse(e));
+  $("#landing-form")?.addEventListener("submit", (e) => OnLead.onLandingCreate(e));
+  OnLead.bindLandingEditor();
+  OnLead.bindTelegramForms();
   if (OnLead.bindLandingsOl) OnLead.bindLandingsOl();
   if (OnLead.bindLeadgenOl) OnLead.bindLeadgenOl();
   if (OnLead.bindNeurocommentOl) OnLead.bindNeurocommentOl();
@@ -831,21 +714,21 @@ function bindOffice() {
   if (OnLead.bindBillingOl) OnLead.bindBillingOl();
   if (OnLead.bindLeadVkOl) OnLead.bindLeadVkOl();
   scrollToHashAnchor();
-  $("#media-upload-form")?.addEventListener("submit", onMediaUpload);
-  $("#tool-form")?.addEventListener("input", syncAutopostPreview);
-  $("#tool-form")?.addEventListener("change", syncAutopostPreview);
-  syncAutopostPreview();
+  $("#media-upload-form")?.addEventListener("submit", (e) => OnLead.onMediaUpload(e));
+  $("#tool-form")?.addEventListener("input", () => OnLead.syncAutopostPreview());
+  $("#tool-form")?.addEventListener("change", () => OnLead.syncAutopostPreview());
+  OnLead.syncAutopostPreview();
   root.onchange = onOfficeChange;
-  $("#lg-phrase-form")?.addEventListener("submit", onLeadgenAddPhrase);
-  $("#lg-exclude-form")?.addEventListener("submit", onLeadgenExclude);
-  bindLeadgenUi();
-  loadOpenList();
+  $("#lg-phrase-form")?.addEventListener("submit", (e) => OnLead.onLeadgenAddPhrase(e));
+  $("#lg-exclude-form")?.addEventListener("submit", (e) => OnLead.onLeadgenExclude(e));
+  OnLead.bindLeadgenUi();
+  OnLead.loadOpenList();
   pollToolCampaigns();
   tickPromoCountdown();
   $("#vk-token-paste")?.addEventListener("paste", () => {
     setTimeout(() => {
       const parsed = OnLead.parseVkAccessToken($("#vk-token-paste")?.value || "");
-      if (parsed?.accessToken) finishVkConnect(parsed);
+      if (parsed?.accessToken) OnLead.finishVkConnect(parsed);
     }, 0);
   });
 }
