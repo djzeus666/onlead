@@ -97,6 +97,7 @@ test('runMasslikeStep likes once and does not repeat', async () => {
     stats: {},
     token: 'mock:vk',
     now,
+    pauseMs: 0,
     ...apis,
   });
   assert.equal(first.ok, true);
@@ -111,6 +112,7 @@ test('runMasslikeStep likes once and does not repeat', async () => {
     stats: { likedKeys: [first.meta.likedKey], lastLikeAt: new Date(now.getTime() - 300_000).toISOString() },
     token: 'mock:vk',
     now,
+    pauseMs: 0,
     ...apis,
   });
   assert.equal(second.meta.likedKey, 'post:12_2');
@@ -143,6 +145,7 @@ test('runMasslikeStep likes a comment and keeps reply url', async () => {
       text: 'Согласен', url: 'https://vk.com/wall11_5?reply=77',
     }],
     like: async () => ({ ok: true }),
+    pauseMs: 0,
   });
   assert.equal(r.ok, true);
   assert.equal(r.meta.likedKey, 'comment:11_77');

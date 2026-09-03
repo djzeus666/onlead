@@ -92,6 +92,12 @@ Expected production values:
 
 Admin panel shows SQLite schema version on the dashboard.
 
+## Storage scale (deferred)
+
+SQLite schema v10 is intentional for the current single-node VPS footprint
+(backups to local offsite + S3). **Postgres / HA** is deferred until load or
+availability requirements outgrow one node — not a go-live blocker.
+
 ## Service audit
 
 `/api/health` only reports configuration. To check that every service actually

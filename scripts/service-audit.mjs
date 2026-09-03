@@ -237,12 +237,14 @@ if (!all.length) {
   row('landings', 'WARN', `${all.length} шт., ни один не опубликован — заявки не принимаются`);
 } else {
   const res = await timed(async () => {
-    const url = `${publicUrl()}/api/public/landings/${published[0].id}`;
+    const port = process.env.PORT || 4173;
+    // Prefer loopback: public HTTPS often fails TLS from inside the container.
+    const url = `http://127.0.0.1:${port}/api/public/landings/${published[0].id}`;
     const r = await fetch(url, { signal: AbortSignal.timeout(15000) });
     if (!r.ok) throw new Error(`${url} → HTTP ${r.status}`);
     const j = await r.json();
     if (!j.headline) throw new Error('публичный ответ без заголовка');
-    return `опубликовано ${published.length} из ${all.length}, «${j.headline}» отдаётся`;
+    return `опубликовано ${published.length} из ${all.length}, «${j.headline}» отдаётся (${publicUrl()})`;
   });
   row('landings', res.ok ? 'OK' : 'FAIL', res.detail);
 }

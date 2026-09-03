@@ -1,7 +1,7 @@
 /** Masslike: one like per worker tick, with window / hourly / daily caps and no re-likes. */
 import { vkDiscoverFriendsPosts, vkDiscoverWallPosts, vkDiscoverFeedPhotos, vkDiscoverPostComments, vkLikeItem, vkResolveOwnerId } from './neurocomment.mjs';
 import { vkGrowthErrorHint } from './growth.mjs';
-import { isMock } from './call.mjs';
+import { isMock, sleep } from './call.mjs';
 
 const TZ = 'Europe/Moscow';
 
@@ -240,6 +240,12 @@ export async function runMasslikeStep(ctx) {
     likedItem: likedItemFromTarget(post),
   };
   if (r.ok) {
+    // Pace delay lives here so massliking never depends on the worker remembering `sleep`.
+    const raw = payload.pauseMs ?? ctx.pauseMs;
+    const pauseMs = raw === undefined || raw === null || raw === ''
+      ? 400
+      : Math.max(Number(raw) || 0, 0);
+    if (pauseMs > 0) await sleep(pauseMs);
     return { ok: true, message: `Лайк ${post.url}`, meta };
   }
   return {
