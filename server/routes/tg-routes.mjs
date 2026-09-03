@@ -4,8 +4,9 @@ import { allowMocks, isMockToken, isTelegramLive, mockBlockedMessage } from '../
 import {
   listHostedLeadBots, publicHostedLeadBot, createHostedLeadBot,
   patchHostedLeadBot, deleteHostedLeadBot, widgetSnippetForBot,
-  deployLeadBotToFunnel, submitWidgetLead,
+  deployLeadBotToFunnel, submitWidgetLead, refineHostedLeadBot,
 } from '../lead-bots.mjs';
+import { generateAiChat, readAiConfig } from '../ai.mjs';
 import {
   listFunnelProducts, createFunnelProduct, patchFunnelProduct,
   deleteFunnelProduct, listFunnelOrders,
@@ -431,6 +432,19 @@ if (method === 'GET' && path === '/api/tg/receipts') {
     const row = patchHostedLeadBot(u.id, id, body);
     if (!row) { send(res, 404, { error: 'Р‘РѕС‚ РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
     send(res, 200, publicHostedLeadBot(row));
+  }
+
+  if (method === 'POST' && path.match(/^\/api\/lead-bots\/[^/]+\/refine$/)) {
+    const u = requireUser(req, res); if (!u) return true;
+    const id = path.split('/')[3];
+    try {
+      const row = await refineHostedLeadBot(u.id, id, { generateAiChat, readAiConfig, settings: load().settings });
+      if (!row) { send(res, 404, { error: 'Бот не найден' }); return true; }
+      send(res, 200, publicHostedLeadBot(row));
+    } catch (err) {
+      sendFail(res, err);
+    }
+    return true;
   }
 
   if (method === 'DELETE' && path.match(/^\/api\/lead-bots\/[^/]+$/)) {

@@ -4,6 +4,28 @@
 window.OnLead = window.OnLead || {};
 
 OnLead.clickContent = async function clickContent(act, btn, e) {
+  if (act === "studio-next") {
+    const step = Number(OnLead._studioStep || 1);
+    OnLead._studioDraft = OnLead._studioDraft || { niche: "services", days: 7, brand: "" };
+    if (step === 1) {
+      OnLead._studioDraft.brand = document.getElementById("studio-brand")?.value || "";
+    }
+    OnLead._studioStep = Math.min(3, step + 1);
+    await OnLead.render();
+    return true;
+  }
+  if (act === "studio-prev") {
+    OnLead._studioStep = Math.max(1, Number(OnLead._studioStep || 1) - 1);
+    await OnLead.render();
+    return true;
+  }
+  if (act === "studio-pick-niche") {
+    OnLead._studioDraft = OnLead._studioDraft || { niche: "services", days: 7, brand: "" };
+    OnLead._studioDraft.niche = btn.dataset.id || "services";
+    await OnLead.render();
+    return true;
+  }
+
   if (act === "compose-ai") {
         const form = document.getElementById("compose-form");
         const id = form?.dataset.id;
@@ -94,7 +116,7 @@ OnLead.clickContent = async function clickContent(act, btn, e) {
 
   if (act === "ai-preset") {
         const ta = document.querySelector('#ai-images-form [name="prompt"]');
-        if (ta) ta.value = btn.textContent.trim();
+        if (ta) ta.value = (btn.dataset.prompt || btn.textContent || "").trim();
         return true;
       }
 

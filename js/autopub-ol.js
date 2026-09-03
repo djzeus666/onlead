@@ -6,13 +6,14 @@ window.OnLead = window.OnLead || {};
 OnLead.autopubOlNav = function autopubOlNav(path) {
   const items = [
     { href: "#/office/automation", label: "Обзор" },
+    { href: "#/office/webhooks/inbound", label: "Webhook" },
     { href: "#/office/rss", label: "RSS Autopilot" },
     { href: "#/office/repost", label: "Репосты VK" },
     { href: "#/office/crosspost", label: "AI-кросспост" },
   ];
   return `<div class="toolbar ap-nav">${items.map((it) => {
     const p = String(it.href).replace("#", "");
-    const on = path === p;
+    const on = path === p || (it.href.includes("webhooks") && path.startsWith("/office/webhooks"));
     return `<a class="btn btn-sm ${on ? "btn-ink" : "btn-ghost"}" href="${it.href}">${it.label}</a>`;
   }).join("")}</div>`;
 };
@@ -29,15 +30,14 @@ OnLead.automationOlPage = function automationOlPage(state, path) {
       <p class="muted">RSS в черновики, AI-кросспост, webhook и репосты из VK.</p></div></div>
     <div class="card ap-webhook" id="webhook">
       <b>Внешний триггер → черновик</b>
-      <p class="muted">Другая система может POST-ом прислать заголовок и текст — в кабинете появится черновик или запланированный пост.</p>
+      <p class="muted">Кратко: POST JSON → черновик. Полные настройки и тест — на отдельной странице.</p>
       ${whUrl
     ? `<input class="ap-webhook-url" readonly value="${esc(whUrl)}" aria-label="Webhook URL">`
     : `<p class="muted">Загрузка URL…</p>`}
       <div class="toolbar" style="margin-top:10px">
+        <a class="btn btn-sm btn-primary" href="#/office/webhooks/inbound">Настройки webhook</a>
         <button type="button" class="btn btn-sm btn-ghost" data-act="webhook-copy" ${whUrl ? "" : "disabled"}>Копировать URL</button>
-        <button type="button" class="btn btn-sm btn-ghost" data-act="webhook-rotate">Сменить токен</button>
       </div>
-      <p class="muted ap-webhook-hint">JSON: <code>{"title":"…","body":"…","scheduledAt":"ISO8601","accountId":"…","ownerId":-123}</code></p>
     </div>
     <div class="ap-cards">
       <a class="card ap-card" href="#/office/rss">
@@ -60,6 +60,39 @@ OnLead.automationOlPage = function automationOlPage(state, path) {
         <b>Доска контента</b>
         <p class="muted">Черновики и запланированные публикации</p>
       </a>
+    </div>
+  </div>`;
+};
+
+/** Dedicated inbound webhook settings (OL /webhooks/inbound). */
+OnLead.inboundWebhookOlPage = function inboundWebhookOlPage(state, path) {
+  const esc = OnLead.esc || ((s) => String(s ?? ""));
+  const nav = OnLead.autopubOlNav(path);
+  const whUrl = OnLead._inboundWebhookUrl || "";
+  return `<div class="ap-ol">
+    ${nav}
+    <div class="h-row"><div><p class="ap-kicker">Автоматизация</p><h1>Входящий webhook</h1>
+      <p class="muted">POST с внешнего сервиса создаёт черновик или запланированный пост в кабинете.</p></div></div>
+    <div class="card ap-webhook">
+      <b>URL endpoint</b>
+      ${whUrl
+    ? `<input class="ap-webhook-url" readonly value="${esc(whUrl)}" aria-label="Webhook URL">`
+    : `<p class="muted">Загрузка…</p>`}
+      <div class="toolbar" style="margin-top:10px">
+        <button type="button" class="btn btn-sm btn-primary" data-act="webhook-copy" ${whUrl ? "" : "disabled"}>Копировать</button>
+        <button type="button" class="btn btn-sm btn-ghost" data-act="webhook-rotate">Сменить токен</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <b>Формат тела</b>
+      <pre class="ap-webhook-hint" style="white-space:pre-wrap;font-size:12px;margin:8px 0 0">{
+  "title": "Заголовок",
+  "body": "Текст поста",
+  "scheduledAt": "2026-09-10T18:00:00+05:00",
+  "accountId": "опционально",
+  "ownerId": -123456
+}</pre>
+      <p class="muted" style="margin-top:10px;font-size:12px">Авторизация — секрет в URL. После смены токена обновите интеграцию.</p>
     </div>
   </div>`;
 };

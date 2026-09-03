@@ -305,6 +305,7 @@ function officeChrome(path) {
   if (path === "/office/history") return { kicker: "Контент", title: "История" };
   if (path === "/office/ai-images") return { kicker: "Контент", title: "AI-картинки" };
   if (path === "/office/automation") return { kicker: "Автоматизация", title: "Обзор" };
+  if (path === "/office/webhooks/inbound" || path === "/office/webhooks") return { kicker: "Автоматизация", title: "Webhook" };
   if (path === "/office/rss") return { kicker: "Автоматизация", title: "RSS Autopilot" };
   if (path === "/office/repost") return { kicker: "Автоматизация", title: "Репосты VK" };
   if (path === "/office/crosspost") return { kicker: "Автоматизация", title: "AI-кросспост" };
@@ -414,7 +415,7 @@ async function render() {
     }
     if (path === "/office/rss") OnLead.loadRssItems?.();
     if (path === "/office/repost") OnLead.loadRepostItems?.();
-    if (path === "/office/automation") OnLead.loadInboundWebhook?.();
+    if (path === "/office/automation" || path === "/office/webhooks/inbound" || path === "/office/webhooks") OnLead.loadInboundWebhook?.();
     if (path === "/office/workflow") OnLead.loadWorkflow?.();
     if (path === "/office/ai-images") OnLead.loadAiGallery?.();
     if (path === "/office/analytics") OnLead.loadAnalyticsDetail?.();
@@ -471,6 +472,9 @@ function officePage(path, state) {
   }
   if (path === "/office/automation") {
     return OnLead.automationOlPage ? OnLead.automationOlPage(state, path) : `<div class="card muted">Автоматизация загружается…</div>`;
+  }
+  if (path === "/office/webhooks/inbound" || path === "/office/webhooks") {
+    return OnLead.inboundWebhookOlPage ? OnLead.inboundWebhookOlPage(state, path) : `<div class="card muted">Webhook загружается…</div>`;
   }
   if (path === "/office/rss") {
     return OnLead.rssOlPage ? OnLead.rssOlPage(state, path) : `<div class="card muted">RSS загружается…</div>`;

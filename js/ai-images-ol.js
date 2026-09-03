@@ -22,7 +22,12 @@ OnLead.aiImagesOlPage = function aiImagesOlPage(state, path) {
   const images = OnLead._aiGallery || [];
   const last = OnLead._aiLastImage;
 
-  const presets = ["Обложка для VK-поста", "Промо акции", "Минималистичный фон"];
+  const presets = [
+    { label: "Обложка VK", prompt: "Минималистичная обложка для поста ВКонтакте, чистая типографика" },
+    { label: "Промо", prompt: "Яркий промо-баннер акции, контрастные цвета, место под текст" },
+    { label: "Сторис", prompt: "Вертикальный креатив 9:16 для сторис, современный стиль" },
+    { label: "Фон", prompt: "Минималистичный абстрактный фон для карточки товара" },
+  ];
   const gallery = images.length
     ? `<div class="ai-gallery">${images.map((img) => `<a class="ai-thumb" href="${esc(img.url)}" target="_blank" rel="noopener" title="${esc(img.name || "")}">
         <img src="${esc(img.url)}" alt="" loading="lazy">
@@ -34,13 +39,21 @@ OnLead.aiImagesOlPage = function aiImagesOlPage(state, path) {
   return `<div class="ai-ol">
     ${nav}
     <div class="h-row"><div><p class="ai-kicker">Контент</p><h1>AI-картинки</h1>
-      <p class="muted">Генерация обложек и креативов для постов VK.</p></div></div>
+      <p class="muted">Генерация обложек и креативов для постов VK · стили и галерея.</p></div></div>
     <div class="ai-layout">
       <form id="ai-images-form" class="card ai-form">
         <label class="field"><span>Описание</span>
           <textarea name="prompt" rows="5" placeholder="Опишите картинку…" required></textarea></label>
         <div class="toolbar ai-chips">${presets.map((p) =>
-          `<button type="button" class="btn btn-ghost btn-sm" data-act="ai-preset">${esc(p)}</button>`).join("")}</div>
+          `<button type="button" class="btn btn-ghost btn-sm" data-act="ai-preset" data-prompt="${esc(p.prompt)}">${esc(p.label)}</button>`).join("")}</div>
+        <label class="field"><span>Стиль</span>
+          <select name="style">
+            <option value="">Авто</option>
+            <option value="minimal">Минимализм</option>
+            <option value="photo">Фотореализм</option>
+            <option value="flat">Flat illustration</option>
+            <option value="3d">3D soft</option>
+          </select></label>
         <label class="field"><span>Размер</span>
           <select name="ratio"><option value="1:1">1024×1024</option><option value="9:16">1024×1792</option><option value="16:9">1792×1024</option></select></label>
         <button type="submit" class="btn btn-primary">Сгенерировать</button>
@@ -77,15 +90,28 @@ OnLead.loadAiGallery = async function loadAiGallery() {
 };
 
 OnLead.bindAiImagesOl = function bindAiImagesOl() {
+  document.querySelectorAll("[data-act=ai-preset]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const ta = document.querySelector("#ai-images-form textarea[name=prompt]");
+      if (ta) ta.value = btn.dataset.prompt || btn.textContent || "";
+    });
+  });
   document.getElementById("ai-images-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
     const btn = e.target.querySelector('[type="submit"]');
     if (btn) { btn.disabled = true; btn.textContent = "Генерация…"; }
     try {
+      const style = String(fd.get("style") || "");
+      const styleHint = style === "minimal" ? ", minimal flat design"
+        : style === "photo" ? ", photorealistic"
+        : style === "flat" ? ", flat illustration"
+        : style === "3d" ? ", soft 3d render"
+        : "";
+      const prompt = `${String(fd.get("prompt") || "").trim()}${styleHint}`;
       const r = await OnLead.api("/api/campaigns", {
         method: "POST",
-        body: { slug: "image-ai", payload: { prompt: fd.get("prompt"), ratio: fd.get("ratio"), engine: "auto" } },
+        body: { slug: "image-ai", payload: { prompt, ratio: fd.get("ratio"), engine: "auto" } },
       });
       const imgs = r.stats?.images || r.campaign?.stats?.images || [];
       const url = imgs[imgs.length - 1]?.url || imgs[0]?.url;

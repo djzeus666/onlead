@@ -130,6 +130,25 @@ export function patchHostedLeadBot(userId, id, body = {}) {
   });
 }
 
+export async function refineHostedLeadBot(userId, id, { generateAiChat, readAiConfig, settings } = {}) {
+  const bot = getHostedLeadBot(userId, id);
+  if (!bot) throw new Error('Бот не найден');
+  const cfg = readAiConfig(settings || load().settings);
+  const { text } = await generateAiChat([
+    {
+      role: 'system',
+      content: 'Ты копирайтер Telegram-ботов. Улучши оффер и сценарий: коротко, по делу, на русском. Верни только текст сценария без кавычек.',
+    },
+    {
+      role: 'user',
+      content: `Бизнес: ${bot.business || bot.title}\nГород: ${bot.city || '—'}\nЦель: ${bot.goal || '—'}\nТекущий сценарий:\n${bot.script || bot.goal || 'Собери заявку'}`,
+    },
+  ], cfg, { maxTokens: 500 });
+  const script = String(text || '').trim().slice(0, 12000);
+  if (!script) throw new Error('AI не вернул текст');
+  return patchHostedLeadBot(userId, id, { script, regenerate: false });
+}
+
 export function deleteHostedLeadBot(userId, id) {
   mutate((d) => {
     d.hostedLeadBots = (d.hostedLeadBots || []).filter((x) => !(x.id === id && x.userId === userId));

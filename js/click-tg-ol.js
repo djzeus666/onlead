@@ -120,6 +120,23 @@ OnLead.clickTelegram = async function clickTelegram(act, btn, e) {
         return true;
       }
 
+  if (act === "lb-refine") {
+        const prev = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "AI…";
+        try {
+          await OnLead.api("/api/lead-bots/" + btn.dataset.id + "/refine", { method: "POST" });
+          OnLead._flash = "Сценарий улучшен AI";
+          await OnLead.refresh();
+          await OnLead.render();
+        } catch (err) {
+          alert(err.message);
+          btn.disabled = false;
+          btn.textContent = prev;
+        }
+        return true;
+      }
+
   if (act === "lb-del") {
         if (!OnLead.confirmDel(btn.dataset.name || "бот")) return true;
         await OnLead.api("/api/lead-bots/" + btn.dataset.id, { method: "DELETE" });

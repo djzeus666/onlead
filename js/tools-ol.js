@@ -168,7 +168,8 @@ OnLead.toolFieldHtml = function toolFieldHtml(f, state) {
       optsSrc = ["Только стена"];
     }
     const opts = optsSrc.map((o) => (o && typeof o === "object" ? { value: o.value ?? o.v, label: o.label ?? o.l } : { value: o, label: o }));
-    return `<div class="field"><label>${OnLead.esc(f.label)}</label><select name="${f.key}">${opts.map((o) => `<option value="${OnLead.esc(o.value)}">${OnLead.esc(o.label)}</option>`).join("")}</select></div>`;
+    const selected = f.value != null ? String(f.value) : "";
+    return `<div class="field"><label>${OnLead.esc(f.label)}</label><select name="${f.key}">${opts.map((o) => `<option value="${OnLead.esc(o.value)}"${selected && String(o.value) === selected ? " selected" : ""}>${OnLead.esc(o.label)}</option>`).join("")}</select></div>`;
   }
   if (f.type === "textarea") {
     const body = f.value != null ? String(f.value) : "";

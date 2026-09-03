@@ -6,13 +6,14 @@ window.OnLead = window.OnLead || {};
 OnLead.repostOlNav = function repostOlNav(path) {
   const items = [
     { href: "#/office/automation", label: "Обзор" },
+    { href: "#/office/webhooks/inbound", label: "Webhook" },
     { href: "#/office/rss", label: "RSS" },
     { href: "#/office/repost", label: "Репосты VK" },
     { href: "#/office/crosspost", label: "AI-кросспост" },
   ];
   return `<div class="toolbar ap-nav">${items.map((it) => {
     const p = String(it.href).replace("#", "");
-    const on = path === p;
+    const on = path === p || (it.href.includes("webhooks") && String(path).startsWith("/office/webhooks"));
     return `<a class="btn btn-sm ${on ? "btn-ink" : "btn-ghost"}" href="${it.href}">${it.label}</a>`;
   }).join("")}</div>`;
 };
@@ -55,7 +56,7 @@ OnLead.repostOlPage = function repostOlPage(state, path) {
   return `<div class="ap-ol">
     ${nav}
     <div class="h-row"><div><p class="ap-kicker">Автопубликация</p><h1>Репосты VK</h1>
-      <p class="muted">Сканирование стены → черновики с вложениями.</p></div></div>
+      <p class="muted">Сканирование стены → черновики с вложениями. Онлайн-режим = по расписанию воркера. OK/другие сети — вне скоупа (VK-only).</p></div></div>
     <div class="ap-layout">
       <div class="ap-col">
         <form id="repost-add-form" class="card ap-add">

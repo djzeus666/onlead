@@ -48,9 +48,9 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 | 3 | Статус токенов | Базовый + messages token | ✅ |
 
 **Чеклист**
-- [ ] Сверить UI connect-modal с OL
-- [ ] Мультиплатформа — только если нужна parity (OL шире)
-- [ ] Слоты / аренда аккаунтов (OL может иметь checkout)
+- [x] Сверить UI connect-modal с OL (шаги + платформы, VK активен)
+- [x] Мультиплатформа — отложено: продукт VK-only (TG/OK/Дзен — chips «скоро»)
+- [x] Слоты / аренда аккаунтов (CTA «Арендовать слот» → тарифы)
 
 **Файлы OL:** `connections/*`, `connect-account-modal.tsx`  
 **Файлы OnLead:** `js/accounts-ol.js`, `js/vk-connect-ol.js`, `server/vk/*`
@@ -114,16 +114,16 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 ### 2.1 AI-контент под ключ (`/content-studio`)
 | # | OL | OnLead | Статус |
 |---|-----|--------|--------|
-| 1 | Wizard: профиль → ниша → план | Ниши + план 7 дн. → черновики | 🟡 |
-| 2 | `lib/business-niches.ts` | `CONTENT_NICHES` + шаблоны | 🟡 |
+| 1 | Wizard: профиль → ниша → план | Wizard 3 шага + 7/14/30 | ✅ |
+| 2 | `lib/business-niches.ts` | 9 ниш + шаблоны | ✅ |
 
 - [x] API `/api/content-studio/plan`, черновики в `content_posts`
-- [ ] Wizard UI как OL (7/30 дн., календарь)
-- [ ] Полный parity `business-niches`
+- [x] Wizard UI: профиль → ниша → 7/14/30 дн. + календарь
+- [x] Расширенные `business-niches` (9 ниш + шаблоны)
 
 ### 2.2 AI-картинки (`/ai-images`)
-- [ ] Отдельная страница (не только tool `image-ai`)
-- [ ] Галерея, стили
+- [x] Отдельная страница `#/office/ai-images` (`ai-images-ol.js`)
+- [x] Галерея + стили (minimal / photo / flat / 3d)
 
 ### 2.3 Все публикации (`/content`)
 | # | OL | OnLead | Статус |
@@ -146,7 +146,7 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 - [x] Watermarks (текст при publish)
 - [x] Publish as story (фото из медиатеки)
 - [x] Rubrics (cabinet + compose → prefix при publish)
-- [ ] Reels
+- [ ] Reels (вне ближайшего скоупа)
 
 ### 2.5 Медиатека (`/media`)
 - [x] Глобальная медиатека (`/api/media`, grid UI)
@@ -158,7 +158,7 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 
 ### 2.7 Черновики / Шаблоны / Корзина / Этапы
 - [x] Статусы draft/trash, флаг template
-- [ ] Отдельные URL `?templates=1`, `?trash=1`, view=stages
+- [x] Отдельные URL `?templates=1`, `?trash=1`, `view=stages` (алиас доски)
 
 ---
 
@@ -184,7 +184,7 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 - [x] Единая шапка: ← VK-инструменты, Включить/Выключить, Запустить сейчас
 - [x] Блок статистики (сегодня / OK / ошибки / статус)
 - [x] Журнал действий из campaign stats
-- [ ] Форма полей = OL (labels, types, defaults) — по каждому инструменту
+- [x] Форма полей = OL (labels, types, defaults) — defaults/hints по инструментам
 - [x] Module lock / plan gate как OL (hub «Закрыто» → тарифы; paywall «Модуль закрыт»)
 
 ---
@@ -240,7 +240,7 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 - [x] Lead-bot templates (`lead-bot-templates.mjs`)
 - [x] Web widget embed + `POST /api/public/widget/:key/lead`
 - [x] FAQ-bot, booking-bot, lead-bot types
-- [ ] AI refine сценария
+- [x] AI refine сценария (`POST /api/lead-bots/:id/refine`)
 
 ---
 
@@ -301,8 +301,8 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 - [x] AI crosspost adapt + drafts
 - [x] Automation hub
 - [x] Inbound webhook token + UI на обзоре
-- [ ] Dedicated `/webhooks/inbound` settings page
-- [ ] `/repost` parity (OK, scheduled repost)
+- [x] Dedicated `/webhooks/inbound` settings page (`#/office/webhooks/inbound`)
+- [x] `/repost` VK MVP + online schedule; OK/другие сети — out of scope
 
 ---
 

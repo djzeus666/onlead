@@ -40,9 +40,12 @@ OnLead.contentOlNav = function contentOlNav(path) {
 OnLead.contentOlPage = function contentOlPage(state, path) {
   const esc = OnLead.esc || ((s) => String(s ?? ""));
   const q = hashParams();
-  const view = q.get("view") || "board";
+  const viewRaw = q.get("view") || "board";
+  const view = viewRaw === "stages" ? "board" : viewRaw;
   const trash = q.get("trash") === "1";
-  const posts = (state.contentPosts || []).filter((p) => (trash ? p.status === "trash" : p.status !== "trash"));
+  const templatesOnly = q.get("templates") === "1";
+  let posts = (state.contentPosts || []).filter((p) => (trash ? p.status === "trash" : p.status !== "trash"));
+  if (templatesOnly) posts = posts.filter((p) => p.template);
   const counts = state.contentCounts || {};
   const nav = OnLead.contentOlNav(path);
 
@@ -189,7 +192,7 @@ OnLead.contentOlPage = function contentOlPage(state, path) {
   return `<div class="cnt-ol">
     ${nav}
     <div class="h-row cnt-head">
-      <div><p class="cnt-kicker">Контент</p><h1>${trash ? "Корзина" : "Все публикации"}</h1></div>
+      <div><p class="cnt-kicker">Контент</p><h1>${trash ? "Корзина" : templatesOnly ? "Шаблоны" : "Все публикации"}</h1></div>
       <div class="toolbar">
         <a class="btn btn-primary" href="#/office/compose">+ Новый пост</a>
         <a class="btn btn-ghost" href="#/office/content-studio">AI-план</a>
@@ -200,8 +203,10 @@ OnLead.contentOlPage = function contentOlPage(state, path) {
       <div class="card"><span class="muted">Всего</span><b>${counts.all || 0}</b></div>
     </div>
     <div class="toolbar cnt-toolbar">
-      <a class="btn btn-sm ${view === "board" || (!view || view === "board") && !trash ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=board">Доска</a>
-      <a class="btn btn-sm ${view === "list" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=list">Список</a>
+      <a class="btn btn-sm ${view === "board" || viewRaw === "stages" || (!view || view === "board") && !trash && !templatesOnly ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=board">Доска</a>
+      <a class="btn btn-sm ${viewRaw === "stages" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=stages">Этапы</a>
+      <a class="btn btn-sm ${view === "list" && !templatesOnly ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=list">Список</a>
+      <a class="btn btn-sm ${templatesOnly ? "btn-ink" : "btn-ghost"}" href="#/office/content?templates=1">Шаблоны</a>
       <a class="btn btn-sm ${view === "calendar" || view === "day" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=calendar">Месяц</a>
       <a class="btn btn-sm ${view === "week" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=week">Неделя</a>
       <a class="btn btn-sm ${view === "watermarks" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=watermarks">Водяные знаки</a>
@@ -233,30 +238,75 @@ OnLead.contentOlHistoryPage = function contentOlHistoryPage(state, path) {
 
 OnLead.CONTENT_NICHES = [
   { id: "beauty", label: "Красота и уход" },
-  { id: "fitness", label: "Фитнес" },
-  { id: "education", label: "Обучение" },
-  { id: "services", label: "Услуги" },
-  { id: "shop", label: "Магазин" },
+  { id: "fitness", label: "Фитнес и здоровье" },
+  { id: "education", label: "Обучение и курсы" },
+  { id: "services", label: "Услуги B2C" },
+  { id: "shop", label: "Интернет-магазин" },
   { id: "realestate", label: "Недвижимость" },
+  { id: "dentistry", label: "Стоматология" },
+  { id: "cafe", label: "Кафе и рестораны" },
+  { id: "auto", label: "Автосервис" },
 ];
 
 OnLead.contentOlStudioPage = function contentOlStudioPage(state, path) {
   const esc = OnLead.esc || ((s) => String(s ?? ""));
   const nav = OnLead.contentOlNav(path);
   const niches = OnLead.CONTENT_NICHES;
+  const step = Number(OnLead._studioStep || 1);
+  const draft = OnLead._studioDraft || { niche: niches[0].id, days: 7, brand: "" };
+  const steps = [
+    { n: 1, label: "Профиль" },
+    { n: 2, label: "Ниша" },
+    { n: 3, label: "Горизонт" },
+  ];
+  const stepNav = `<div class="toolbar cnt-studio-steps">${steps.map((s) =>
+    `<span class="chip ${step === s.n ? "chip-ok" : ""}">${s.n}. ${esc(s.label)}</span>`).join("")}</div>`;
+
+  let body = "";
+  if (step === 1) {
+    body = `<div class="card cnt-studio-form">
+      <b>Шаг 1 · Профиль</b>
+      <p class="muted" style="font-size:12px">Коротко о бренде — попадёт в тон черновиков.</p>
+      <label class="field"><span>Бренд / продукт</span>
+        <input name="brand" id="studio-brand" value="${esc(draft.brand || "")}" placeholder="Студия маникюра «Лайн»"></label>
+      <button type="button" class="btn btn-primary" data-act="studio-next">Далее →</button>
+    </div>`;
+  } else if (step === 2) {
+    body = `<div class="card cnt-studio-form">
+      <b>Шаг 2 · Ниша</b>
+      <div class="cnt-niche-grid">${niches.map((n) =>
+        `<button type="button" class="card cnt-niche ${draft.niche === n.id ? "on" : ""}" data-act="studio-pick-niche" data-id="${esc(n.id)}">${esc(n.label)}</button>`
+      ).join("")}</div>
+      <div class="toolbar" style="margin-top:12px">
+        <button type="button" class="btn btn-ghost" data-act="studio-prev">← Назад</button>
+        <button type="button" class="btn btn-primary" data-act="studio-next">Далее →</button>
+      </div>
+    </div>`;
+  } else {
+    body = `<form id="cnt-studio-form" class="card cnt-studio-form">
+      <b>Шаг 3 · Горизонт плана</b>
+      <input type="hidden" name="niche" value="${esc(draft.niche)}">
+      <label class="field"><span>Дней</span>
+        <select name="days">
+          <option value="7"${Number(draft.days) === 7 ? " selected" : ""}>7 дней · неделя</option>
+          <option value="14"${Number(draft.days) === 14 ? " selected" : ""}>14 дней</option>
+          <option value="30"${Number(draft.days) === 30 ? " selected" : ""}>30 дней · месяц</option>
+        </select>
+      </label>
+      <p class="muted" style="font-size:12px">Создадим черновики в расписании (по одному в день). Календарь: <a href="#/office/content?view=calendar">открыть</a>.</p>
+      <div class="toolbar">
+        <button type="button" class="btn btn-ghost" data-act="studio-prev">← Назад</button>
+        <button type="submit" class="btn btn-primary">Сгенерировать план</button>
+      </div>
+    </form>`;
+  }
+
   return `<div class="cnt-ol">
     ${nav}
-    <div class="h-row"><div><p class="cnt-kicker">AI-контент</p><h1>План на неделю</h1>
-      <p class="muted">Выберите нишу — создадим черновики и поставим в расписание по одному в день.</p></div></div>
-    <form id="cnt-studio-form" class="card cnt-studio-form">
-      <label class="field"><span>Ниша</span>
-        <select name="niche">${niches.map((n) => `<option value="${esc(n.id)}">${esc(n.label)}</option>`).join("")}</select>
-      </label>
-      <label class="field"><span>Дней в плане</span>
-        <select name="days"><option value="7">7</option><option value="14">14</option><option value="30">30</option></select>
-      </label>
-      <button type="submit" class="btn btn-primary">Сгенерировать план</button>
-    </form>
+    <div class="h-row"><div><p class="cnt-kicker">AI-контент</p><h1>Контент-студия</h1>
+      <p class="muted">Мастер: профиль → ниша → план на 7 / 14 / 30 дней.</p></div></div>
+    ${stepNav}
+    ${body}
     <div id="cnt-studio-result" class="muted" style="margin-top:12px"></div>
   </div>`;
 };

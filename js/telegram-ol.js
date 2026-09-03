@@ -57,6 +57,7 @@ OnLead.telegramLeadBotsPage = function telegramLeadBotsPage(state, nav) {
         <div class="muted">${esc(kind?.label || b.kind)} · ${b.status === "live" ? "работает" : b.status === "paused" ? "пауза" : "черновик"}${b.funnelId ? " · воронка" : ""}</div></div>
       <div class="match-actions">
         ${b.kind === "widget" ? `<button type="button" class="btn btn-primary btn-sm" data-act="lb-snippet" data-id="${esc(b.id)}">Сниппет</button>` : `<button type="button" class="btn btn-primary btn-sm" data-act="lb-funnel" data-id="${esc(b.id)}">В воронку</button>`}
+        <button type="button" class="btn btn-ghost btn-sm" data-act="lb-refine" data-id="${esc(b.id)}">AI refine</button>
         <button type="button" class="btn btn-ghost btn-sm" data-act="lb-del" data-id="${esc(b.id)}" data-name="${esc(b.title)}">Удалить</button>
       </div>
     </div>`;

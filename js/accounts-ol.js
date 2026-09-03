@@ -113,19 +113,29 @@ OnLead.vkConnectModalHtml = function vkConnectModalHtml(state) {
     <button type="button" class="vk-connect-modal__backdrop" data-act="vk-connect-close" aria-label="Закрыть"></button>
     <div class="vk-connect-modal__card" role="dialog" aria-modal="true" aria-labelledby="vk-connect-title">
       <button type="button" class="vk-connect-modal__x" data-act="vk-connect-close" aria-label="Закрыть">×</button>
-      <h2 id="vk-connect-title">Привязать VK-аккаунт</h2>
-      <p class="vk-slot__hint">Приложения 5530956 / 6463690 → <code>oauth.vk.com/blank.html</code></p>
-      <p class="vk-slot__hint"><b>Шаг 1.</b> Получите токен во VK. <b>Шаг 2.</b> Скопируйте весь URL страницы blank.html.</p>
+      <h2 id="vk-connect-title">Подключить аккаунт</h2>
+      <div class="vk-connect-platforms" role="list">
+        <button type="button" class="vk-plat on" role="listitem" disabled title="Текущая платформа">VK</button>
+        <button type="button" class="vk-plat muted" disabled title="Скоро">Telegram</button>
+        <button type="button" class="vk-plat muted" disabled title="Скоро">OK</button>
+        <button type="button" class="vk-plat muted" disabled title="Скоро">Дзен</button>
+      </div>
+      <ol class="vk-connect-steps">
+        <li><b>Шаг 1.</b> Нажмите «Получить токен» — откроется окно VK (приложение 5530956).</li>
+        <li><b>Шаг 2.</b> Разрешите доступ и скопируйте весь URL страницы <code>blank.html</code>.</li>
+        <li><b>Шаг 3.</b> Вставьте URL или токен <code>vk1.a…</code> ниже и нажмите «Привязать».</li>
+      </ol>
       <p class="vk-slot__status" id="vk-connect-status"></p>
-      <button class="btn btn-primary btn-block" data-act="vk-login" type="button">Перейти и получить токен</button>
+      <button class="btn btn-primary btn-block" data-act="vk-login" type="button">Получить токен VK</button>
       <div class="field" style="margin-top:12px">
-        <label>Токен vk1.a… или URL blank.html</label>
+        <label>Токен или URL blank.html</label>
         <textarea id="vk-token-paste" class="vk-slot__paste" rows="3" placeholder="https://oauth.vk.com/blank.html#access_token=vk1.a.…"></textarea>
       </div>
       <div class="actions" style="margin-top:10px">
         <button class="btn btn-ink btn-block" data-act="vk-save-token" type="button">Привязать токен</button>
         ${OnLead.health?.mocksAllowed ? `<button class="btn btn-ghost btn-block" data-act="vk-mock" type="button">Демо без VK</button>` : ""}
       </div>
+      <p class="muted" style="font-size:12px;margin:12px 0 0">Нужен отдельный слот? <button type="button" class="btn btn-ghost btn-sm" data-act="vk-rent-slot">Арендовать</button></p>
     </div>
   </div>`;
 }
