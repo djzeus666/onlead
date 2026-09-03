@@ -182,7 +182,18 @@ function lockDownSeedAccounts(store) {
 
 function normalizeStore(store) {
   store.settings = { ...empty().settings, ...(store.settings || {}) };
-  store.settings.legal = store.settings.legal || {};
+  store.settings.legal = { ...empty().settings.legal, ...(store.settings.legal || {}) };
+  // Env wins when DB legal is blank (survives dual-process overwrite / compose recreate).
+  const envOp = String(process.env.LEGAL_OPERATOR || '').trim();
+  const envInn = String(process.env.LEGAL_INN || '').replace(/\D/g, '').slice(0, 12);
+  const envOgrn = String(process.env.LEGAL_OGRN || '').replace(/\D/g, '').slice(0, 15);
+  const envAddr = String(process.env.LEGAL_ADDRESS || '').trim();
+  const envEmail = String(process.env.LEGAL_EMAIL || process.env.SMTP_FROM || '').trim();
+  if (!store.settings.legal.operator && envOp) store.settings.legal.operator = envOp.slice(0, 160);
+  if (!store.settings.legal.inn && envInn) store.settings.legal.inn = envInn;
+  if (!store.settings.legal.ogrn && envOgrn) store.settings.legal.ogrn = envOgrn;
+  if (!store.settings.legal.address && envAddr) store.settings.legal.address = envAddr.slice(0, 240);
+  if (!store.settings.legal.email && envEmail) store.settings.legal.email = envEmail.slice(0, 120);
   const legacy = String(store.settings.vkAppId || '').trim();
   if (legacy === '53828134' || legacy === '54690675') {
     store.settings.vkAppId = '5530956';

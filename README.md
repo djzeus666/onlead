@@ -5,8 +5,10 @@ VK automation platform: customer cabinet, API, and admin panel.
 **Production:** [https://onlead.m360-ural.online/](https://onlead.m360-ural.online/)  
 **Admin:** [https://onlead.m360-ural.online/admin](https://onlead.m360-ural.online/admin)
 
-Demo cabinet: `artem@onlead.local` / `demo1234`  
-Admin: `admin@onlead.local` / `admin1234`
+**Local-only demo accounts** (seeded for `npm start` / Docker local — **not** production credentials):
+
+- Cabinet: `artem@onlead.local` / `demo1234`
+- Admin: `admin@onlead.local` / `admin1234`
 
 VK apps (same as [online-lead.ru](https://online-lead.ru)): base `5530956`, messages `6463690`, redirect `https://oauth.vk.com/blank.html`.
 

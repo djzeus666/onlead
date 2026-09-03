@@ -137,7 +137,7 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 ### 2.4 Compose (`/compose`)
 | # | OL | OnLead | Статус |
 |---|-----|--------|--------|
-| 1 | Редактор поста/сторис/reels | Стена + сторис (фото) | 🟡 |
+| 1 | Редактор поста/сторис/reels | Стена + сторис (фото); Reels — OOS | 🟢 |
 | 2 | Multi-channel, schedule, AI adapt | VK + расписание + AI текст | 🟡 |
 | 3 | Watermarks, rubrics | watermarks + rubrics в контенте + compose | 🟢 |
 
@@ -146,7 +146,7 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 - [x] Watermarks (текст при publish)
 - [x] Publish as story (фото из медиатеки)
 - [x] Rubrics (cabinet + compose → prefix при publish)
-- [ ] Reels (вне ближайшего скоупа)
+- ❌ Reels — **out of scope** (не parity-долг; см. §7 OOS)
 
 ### 2.5 Медиатека (`/media`)
 - [x] Глобальная медиатека (`/api/media`, grid UI)
@@ -318,10 +318,11 @@ OnLead: `js/catalog.js`, `js/*-ol.js`, `js/app.js` (shell), `server/routes/*` + 
 | КП и документы | `/proposals` | — | ❌ out-of-scope |
 | Ad Kit | `/ad-kit` | — | ❌ out-of-scope |
 | Конкуренты | `/competitors` | — | ❌ out-of-scope |
+| Reels | `/compose` reels | — | ❌ out-of-scope |
 
 **Примечание:** OnLead имеет `image-ai`, AI в VK-инструментах и hub `/ai-agents` — не полноценные OL workstations с чатом.
 
-**Out of scope:** Avito, SEO-страницы, site-audit, proposals, ad-kit, competitors — не планируем в OnLead, пока нет явного продуктового запроса. Закрыты как out-of-scope, не как «долг parity».
+**Out of scope:** Avito, SEO-страницы, site-audit, proposals, ad-kit, competitors, **Reels** — не планируем в OnLead, пока нет явного продуктового запроса. Закрыты как out-of-scope, не как «долг parity».
 
 ---
 

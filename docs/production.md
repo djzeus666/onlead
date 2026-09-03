@@ -140,4 +140,4 @@ Verified on prod (`onlead.m360-ural.online`) 2026-09-03 via `/api/health` + `doc
 - [x] SMTP configured (`mailConfigured: true`, smtp.mail.ru:465 connects)
 - [x] VK OAuth app `5530956` + redirect `https://oauth.vk.com/blank.html`
 - [x] Backups: `backups.remoteOk: true` (local offsite 48 + S3 `onlead-backups`)
-- [ ] Legal requisites: operator present, **ИНН ещё пуст** — оферта остаётся черновиком (`legal` OFF in audit) until Settings → Legal or `LEGAL_INN`
+- [x] Legal requisites: operator + INN from YooKassa merchant (`itn`) via Settings / `scripts/apply-legal.mjs` → `legal` OK in audit
