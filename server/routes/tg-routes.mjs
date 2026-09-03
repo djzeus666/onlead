@@ -11,9 +11,10 @@ import {
   deleteFunnelProduct, listFunnelOrders,
 } from '../tg-funnel-ol.mjs';
 import { telegramGetMe, telegramGetChat, telegramDiscoverChats } from '../telegram.mjs';
-import { ensureBotWebhookSecret, registerBotWebhook, botPlainToken } from '../tg-worker.mjs';
+import { ensureBotWebhookSecret, registerBotWebhook, botPlainToken, handleTelegramUpdate } from '../tg-worker.mjs';
+import { safeEqual } from '../hardening.mjs';
 import { confirmReceipt, rejectReceipt } from '../tg-receipts.mjs';
-import { send, sendFail, readBody, requireUser } from '../http-api.mjs';
+import { send, sendFail, readBody, requireUser, enforceRate } from '../http-api.mjs';
 import { snapshot, botToken, liveTgPlan, tgSlotUsage } from '../snapshot.mjs';
 
 export async function handle(ctx) {
@@ -472,6 +473,26 @@ if (method === 'GET' && path === '/api/tg/receipts') {
     mutate((d) => { d.tgFunnels = (d.tgFunnels || []).filter((x) => !(x.id === id && x.userId === u.id)); });
     send(res, 200, { ok: true });
   return true;
+  }
+
+
+if (method === 'POST' && path.startsWith('/api/tg/webhook/')) {
+    if (!enforceRate(req, res, 'webhook')) return true;
+    const botId = path.split('/').pop();
+    const secret = String(req.headers['x-telegram-bot-api-secret-token'] || '');
+    const bot = (load().bots || []).find((b) => b.id === botId);
+    if (!bot || bot.status === 'off') { send(res, 404, { error: 'bot' }); return true; }
+    if (!bot.webhookSecret || String(bot.webhookSecret).length < 16) send(res, 401, { error: 'forbidden' });
+    if (!safeEqual(secret, bot.webhookSecret)) send(res, 401, { error: 'forbidden' });
+    const body = await readBody(req);
+    try {
+      const result = await handleTelegramUpdate(bot, body);
+      send(res, 200, { ok: true, step: result.step, done: result.done });
+    return true;
+    } catch (err) {
+      console.error('[tg webhook]', err.message);
+      send(res, 200, { ok: true });
+    }
   }
 
   return false;

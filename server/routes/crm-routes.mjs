@@ -35,6 +35,7 @@ if (method === 'POST' && path === '/api/parsers') {
     const id = path.split('/')[3];
     mutate((d) => { d.lists = d.lists.filter((l) => l.id !== id || (l.userId && l.userId !== u.id)); });
     send(res, 200, { ok: true });
+  return true;
   }
 
   if (method === 'PATCH' && path.match(/^\/api\/lists\/[^/]+$/)) {
@@ -76,6 +77,7 @@ if (method === 'POST' && path === '/api/parsers') {
   if (method === 'GET' && path === '/api/crm/assignees') {
     const u = requireUser(req, res); if (!u) return true;
     send(res, 200, { members: listCrmAssignees(u) });
+  return true;
   }
 
   if (method === 'POST' && path === '/api/leads') {
@@ -92,6 +94,7 @@ if (method === 'POST' && path === '/api/parsers') {
       return l;
     });
     send(res, 200, lead);
+  return true;
   }
 
   if (method === 'PATCH' && path.startsWith('/api/leads/')) {

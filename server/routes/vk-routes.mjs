@@ -98,6 +98,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
     const existing = mine.find((a) => String(a.vkId) === String(info.externalAccountId));
     if (!existing && mine.length >= (u.accountSlots || 3)) {
       send(res, 400, { error: 'РќРµС‚ СЃРІРѕР±РѕРґРЅС‹С… СЃР»РѕС‚РѕРІ' });
+    return true;
     }
     const tokenEnc = raw.startsWith('mock:') ? raw : encryptToken(raw, process.env.TOKEN_ENCRYPTION_KEY);
     const acc = mutate((d) => {
@@ -137,12 +138,14 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
     });
     const { tokenEnc: _hide, messagesTokenEnc: _hideMsg, ...safe } = acc;
     send(res, 200, publicAccount(acc));
+  return true;
   }
 
   if (method === 'POST' && path.match(/^\/api\/accounts\/[^/]+\/messages-token$/)) {
     const u = requireUser(req, res); if (!u) return true;
     if (load().settings.vkMessagesUiEnabled !== true) {
       send(res, 403, { error: 'РўРѕРєРµРЅ Р›РЎ РѕС‚РєР»СЋС‡С‘РЅ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј' });
+    return true;
     }
     const id = path.split('/')[3];
     const acc = load().accounts.find((a) => a.id === id && a.userId === u.id);
@@ -159,6 +162,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
         }
       });
       send(res, 200, publicAccount(load().accounts.find((a) => a.id === id)));
+    return true;
     }
     const raw = extractVkAccessToken(body.messagesToken || body.token || body.accessToken || '')
       || String(body.messagesToken || body.token || '').trim();
@@ -168,6 +172,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
       await vkAssertMessagesPermission(raw);
     } catch (err) {
       sendFail(res, err);
+    return true;
     }
     mutate((d) => {
       const a = d.accounts.find((x) => x.id === id && x.userId === u.id);
@@ -184,12 +189,14 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
       });
     });
     send(res, 200, publicAccount(load().accounts.find((a) => a.id === id)));
+  return true;
   }
 
   if (method === 'POST' && path.match(/^\/api\/accounts\/[^/]+\/messages-token\/check$/)) {
     const u = requireUser(req, res); if (!u) return true;
     if (load().settings.vkMessagesUiEnabled !== true) {
       send(res, 403, { error: 'РўРѕРєРµРЅ Р›РЎ РѕС‚РєР»СЋС‡С‘РЅ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј' });
+    return true;
     }
     const id = path.split('/')[3];
     const acc = load().accounts.find((a) => a.id === id && a.userId === u.id);
@@ -211,6 +218,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
         });
       });
       sendFail(res, err);
+    return true;
     }
   }
 
@@ -218,6 +226,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
     const u = requireUser(req, res); if (!u) return true;
     const list = load().accounts.filter((a) => a.userId === u.id).map(publicAccount);
     send(res, 200, list);
+  return true;
   }
 
   if (method === 'DELETE' && path.startsWith('/api/accounts/')) {
@@ -225,6 +234,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
     const id = path.split('/').pop();
     mutate((d) => { d.accounts = d.accounts.filter((a) => !(a.id === id && a.userId === u.id)); });
     send(res, 200, { ok: true });
+  return true;
   }
 
   if (method === 'GET' && path.match(/^\/api\/accounts\/[^/]+\/vk-token$/)) {
@@ -267,6 +277,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
       }
     });
     send(res, 200, channels);
+  return true;
   }
 
   if (method === 'GET' && path.startsWith('/api/accounts/') && path.endsWith('/channels')) {
@@ -293,6 +304,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
         });
       }
       sendFail(res, err);
+    return true;
     }
   }
 

@@ -12,13 +12,19 @@ import * as crm from './crm-routes.mjs';
 import * as leadgen from './leadgen-routes.mjs';
 import * as neuro from './neuro-routes.mjs';
 import * as tg from './tg-routes.mjs';
+import * as workflow from './workflow-routes.mjs';
+import * as admin from './admin-routes.mjs';
 
-const handlers = [health, auth, me, cabinet, billing, campaigns, landings, vk, content, crm, leadgen, neuro, tg];
+const handlers = [
+  health, auth, me, cabinet, billing, campaigns, landings,
+  vk, content, crm, leadgen, neuro, tg, workflow, admin,
+];
 
 export async function dispatchRoutes(ctx) {
   if (!assertWorkspaceMutation(ctx.req, ctx.res, ctx.path)) return true;
   for (const mod of handlers) {
     if (await mod.handle(ctx)) return true;
+    if (ctx.res.headersSent) return true;
   }
   return false;
 }

@@ -36,10 +36,14 @@ test('index.mjs wires dispatch; landings in server/routes', () => {
   assert.match(dispatchSrc, /leadgen-routes/);
   assert.match(dispatchSrc, /neuro-routes/);
   assert.match(dispatchSrc, /tg-routes/);
+  assert.match(dispatchSrc, /admin-routes/);
+  assert.match(dispatchSrc, /workflow-routes/);
+  assert.match(dispatchSrc, /headersSent/);
   assert.match(authSrc, /enforceRate\(req, res, 'verify'\)/);
   assert.match(healthSrc, /publicHealthPayload\(healthPayload\(\)\)/);
   assert.match(landingsSrc, /findOwnedLanding/);
-  assert.match(indexSrc, /handleYookassaWebhook/);
+  const billingSrc = readFileSync(join(ROOT, 'routes', 'billing-routes.mjs'), 'utf8');
+  assert.match(billingSrc, /handleYookassaWebhook/);
 });
 
 test('public health drops encryptionKey and backup internals', () => {

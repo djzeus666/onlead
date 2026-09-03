@@ -141,6 +141,7 @@ function paintOfficeBalance() {
   const bal = document.querySelector(".lk-bal");
   if (bal && state) bal.textContent = `${Number(state.balance || 0).toLocaleString("ru-RU")} ₽`;
 }
+OnLead.paintOfficeBalance = paintOfficeBalance;
 
 function setDocShell(path) {
   const lk = String(path || "").startsWith("/office");
@@ -436,6 +437,9 @@ async function render() {
     requestAnimationFrame(() => document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 }
+OnLead.render = render;
+OnLead.go = go;
+OnLead.confirmDel = confirmDel;
 
 /* ========== LANDING ========== */
 function landingPage() {
@@ -798,6 +802,10 @@ function setLkNav(open) { return OnLead.setLkNav(open); }
 function hrefPath(href) { return OnLead.hrefPath(href); }
 function navActive(path, href) { return OnLead.navActive(path, href); }
 
+
+function toolsHub(state) { return OnLead.toolsHub(state); }
+function toolPage(slug, state) { return OnLead.toolPage(slug, state); }
+
 function officePage(path, state) {
   if (path === "/office") return dash(state);
   if (path === "/office/academy" || path.startsWith("/office/academy/")) return academy(path);
@@ -839,6 +847,7 @@ OnLead.officePage = officePage;
 function toolPriceLabel(t) {
   return t.price ? `${t.price} ₽/мес` : "входит в парсеры";
 }
+OnLead.toolPriceLabel = toolPriceLabel;
 
 function toolRow(t, state, extra = {}) {
   const on = t.slug ? OnLead.toolOn(state, t.slug) : extra.on;
@@ -856,6 +865,7 @@ function toolRow(t, state, extra = {}) {
     <div class="lk-tool-meta">${price ? `<span>${esc(price)}</span>` : ""}${status}</div>
   </a>`;
 }
+OnLead.toolRow = toolRow;
 
 function fmtCountdown(untilMs) {
   const left = Math.max(0, untilMs - Date.now());
@@ -1193,268 +1203,6 @@ function bundleHub(id, state) {
     </div>`;
 }
 
-function toolsHub(state) {
-  if (OnLead.vkToolsHubPage) return OnLead.vkToolsHubPage(state);
-  const connected = OnLead.TOOLS.filter((t) => OnLead.toolOn(state, t.slug)).length;
-  return `<div class="h-row"><div><h1>Инструменты VK</h1><p class="muted">Каждый сервис — отдельный экран. Подключите аккаунт и запустите задачу.</p></div>
-      <span class="muted">в работе ${connected} из ${OnLead.TOOLS.length}</span></div>
-    <div class="lk-tool-list">
-      ${OnLead.TOOLS.map((t) => toolRow(t, state)).join("")}
-    </div>`;
-}
-
-function toolAccountSelect(state) {
-  if (!state.accounts.length) {
-    return `<p class="muted">Сначала <a href="#/office/accounts">подключите VK-аккаунт</a>.</p>`;
-  }
-  return `<div class="field"><label>VK-аккаунт</label>
-    <select name="accountId">${state.accounts.map((a) => `<option value="${esc(a.id)}" ${a.id === state.activeAccount ? "selected" : ""}>${esc(a.name)}</option>`).join("")}</select>
-  </div>`;
-}
-
-function fmtWhen(iso) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return String(iso || "");
-  return d.toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-}
-
-function isTechnicalMessage(s) {
-  return /image-модел|админк|API-ключ|провайдер|Base URL|HTTP \d|OpenRouter|Pollinations|YooKassa|TOKEN_|encrypt|stack|gemini-2|llama-3|dall-e|нужен ключ|Kate Mobile|2685278|5530956|messages\.send|Access denied|токен с правом|токен сообщений|blank\.html|oauth\.vk|post2post|сервис заблокирован|проверьте права токена|вставьте рабочий|wall\.post/i.test(String(s || ""));
-}
-
-function taskSubline(c, slug) {
-  const when = fmtWhen(c.created);
-  if (slug === "image-ai") {
-    if ((c.stats?.images || []).length) return `${when} · картинка готова`;
-    if (c.status === "running") return `${when} · создаём картинку…`;
-    if (c.stats?.fail) return `${when} · не получилось, попробуйте ещё раз`;
-    return when;
-  }
-  const st = c.status === "running" ? "в работе" : c.status === "paused" ? "пауза" : c.status === "error" ? "не выполнилось" : "готово";
-  const sent = Number(c.stats?.ok || 0);
-  const fail = Number(c.stats?.fail || 0);
-  const counts = (sent || fail) ? ` · ok ${sent}${fail ? ` / err ${fail}` : ""}` : "";
-  const msg = isTechnicalMessage(c.stats?.lastMessage) ? "" : (c.stats?.lastMessage || "");
-  return msg ? `${when} · ${st}${counts} · ${msg}` : `${when} · ${st}${counts}`;
-}
-
-function masslikeKindLabel(type) {
-  if (type === "comment") return "Комментарий";
-  if (type === "photo") return "Фото";
-  return "Пост";
-}
-
-function masslikeOpenLabel(type) {
-  if (type === "comment") return "Открыть комментарий";
-  if (type === "photo") return "Открыть фото";
-  return "Открыть пост";
-}
-
-function masslikeUrlFromKey(key) {
-  const m = String(key || "").match(/^(post|photo|comment):(-?\d+)_(\d+)$/);
-  if (!m) return null;
-  const type = m[1];
-  const owner = m[2];
-  const id = m[3];
-  if (type === "photo") return { type, url: `https://vk.com/photo${owner}_${id}` };
-  if (type === "comment") return { type, url: `https://vk.com/wall${owner}_${id}` };
-  return { type, url: `https://vk.com/wall${owner}_${id}` };
-}
-
-function collectMasslikeLiked(tasks) {
-  const out = [];
-  const seen = new Set();
-  const push = (it) => {
-    const url = String(it?.url || "").trim();
-    if (!url || seen.has(url)) return;
-    seen.add(url);
-    out.push(it);
-  };
-  for (const c of tasks || []) {
-    for (const it of c.stats?.likedItems || []) push(it);
-  }
-  if (!out.length) {
-    for (const c of tasks || []) {
-      for (const key of [...(c.stats?.likedKeys || [])].reverse()) {
-        const parsed = masslikeUrlFromKey(key);
-        if (parsed) push({ ...parsed, text: "", at: c.stats?.lastLikeAt || c.created });
-      }
-    }
-  }
-  return out.slice(0, 40);
-}
-
-function masslikeLikedFeed(tasks) {
-  const items = collectMasslikeLiked(tasks);
-  return `<div class="card ml-feed" style="margin-top:16px">
-    <b>Что лайкнули</b>
-    <p class="muted" style="margin:6px 0 12px">Последние действия сервиса. Кнопка открывает пост или комментарий во ВКонтакте.</p>
-    ${items.length ? items.map((it) => {
-      const type = it.type || "post";
-      const preview = String(it.text || "").trim();
-      return `<article class="match-card ml-card">
-        <div>
-          <span class="chip">${esc(masslikeKindLabel(type))}</span>
-          <p style="margin:8px 0 4px">${preview ? esc(preview) : `<span class="muted">${type === "photo" ? "Фото без подписи" : type === "comment" ? "Комментарий без текста" : "Пост без текста"}</span>`}</p>
-          <div class="muted">${esc(it.at ? fmtWhen(it.at) : "")}</div>
-        </div>
-        <a class="btn btn-primary btn-sm" href="${esc(it.url)}" target="_blank" rel="noopener">${esc(masslikeOpenLabel(type))}</a>
-      </article>`;
-    }).join("") : `<p class="muted">Пока пусто — после запуска карточки появятся здесь.</p>`}
-  </div>`;
-}
-
-function autopostingPanel(state) {
-  const items = state.autopostQueue || [];
-  const slots = ["Сегодня 18:00", "Завтра 10:00", "По расписанию", "Сейчас"];
-  return `<div class="card" style="margin-top:16px">
-    <h3 style="margin:0 0 10px">Календарь и предпросмотр</h3>
-    <div id="autopost-preview" class="card muted" style="margin-bottom:12px;white-space:pre-wrap;min-height:64px">Заполните текст поста слева — здесь появится предпросмотр.</div>
-    <p class="muted" style="font-size:12px;margin:0 0 8px">Слоты публикации (МСК): ${slots.map((s) => esc(s)).join(" · ")}</p>
-    ${items.length ? `<div class="match-card"><b>Очередь · ${items.length}</b>
-      ${items.map((it, i) => `<div class="list-item" style="margin-top:8px"><div>
-        <span class="chip">#${i + 1}</span>
-        <div class="muted" style="margin-top:4px">${esc(String(it.text || "").slice(0, 160))}${it.photoCount ? ` · ${it.photoCount} фото` : ""}</div>
-      </div></div>`).join("")}
-    </div>` : `<p class="muted">Очередь пуста — соберите посты граббером или введите текст в форме.</p>`}
-  </div>`;
-}
-
-function imageGallery(tasks) {
-  const images = (tasks || []).flatMap((c) => c.stats?.images || []);
-  if (!images.length) {
-    return `<h3 style="margin-top:20px">Галерея</h3><p class="muted">Готовые обложки появятся здесь.</p>`;
-  }
-  return `<h3 style="margin-top:20px">Галерея</h3>
-    <div class="gallery">${images.map((i) => `
-      <a class="ph gen" href="${esc(i.url)}" target="_blank" rel="noopener" title="${esc(i.prompt || "")}">
-        <img src="${esc(i.url)}" alt="${esc(i.prompt || "SMM")}" />
-        <span>${esc((i.prompt || "").slice(0, 80))}</span>
-      </a>`).join("")}</div>`;
-}
-
-function toolFieldHtml(f, state) {
-  const acc = state.accounts.find((a) => a.id === (state.activeAccount)) || state.accounts[0];
-  const channels = acc?.channels || [];
-  const destKeys = f.key === "destinations" || f.key === "dest";
-  const groupKeys = f.key === "group";
-  const pool = groupKeys ? channels.filter((c) => c.type !== "personal") : channels;
-  if ((destKeys || groupKeys) && pool.length) {
-    const opts = pool.map((c) => ({ v: c.externalId, l: `${c.name} · ${c.externalId}` }));
-    return `<div class="field"><label>${esc(f.label)}</label>
-      <select name="${f.key}">${opts.map((o) => `<option value="${esc(o.v)}">${esc(o.l)}</option>`).join("")}</select></div>`;
-  }
-  if (f.type === "lists") {
-    const lists = state.lists || [];
-    if (!lists.length) {
-      return `<p class="muted" style="margin:0 0 10px">Список людей: сначала <a href="#/office/tools/lists">соберите аудиторию</a>.</p>`;
-    }
-    return `<div class="field"><label>${esc(f.label)}</label>
-      <select name="listId">${lists.map((l) => `<option value="${esc(l.id)}">${esc(l.name)} · ${l.count || (l.items || []).length}</option>`).join("")}</select></div>`;
-  }
-  if (f.type === "select") {
-    let optsSrc = f.options || [];
-    if (f.key === "channel" && !OnLead.vkMessagesUiOn(state)) {
-      optsSrc = ["Только стена"];
-    }
-    const opts = optsSrc.map((o) => (o && typeof o === "object" ? { value: o.value ?? o.v, label: o.label ?? o.l } : { value: o, label: o }));
-    return `<div class="field"><label>${esc(f.label)}</label><select name="${f.key}">${opts.map((o) => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join("")}</select></div>`;
-  }
-  if (f.type === "textarea") {
-    const body = f.value != null ? String(f.value) : "";
-    const hint = f.key === "text" && String(f.value || f.placeholder || "").includes("{name}")
-      ? `<p class="muted" style="margin:6px 0 0">Плейсхолдеры: <code>{name}</code>, <code>{first_name}</code>, <code>{last_name}</code>, <code>{full_name}</code></p>`
-      : "";
-    return `<div class="field"><label>${esc(f.label)}</label><textarea name="${f.key}" placeholder="${esc(f.placeholder || "")}">${esc(body)}</textarea>${hint}</div>`;
-  }
-  const min = f.min != null ? ` min="${esc(f.min)}"` : "";
-  const max = f.max != null ? ` max="${esc(f.max)}"` : "";
-  const val = f.value != null && f.value !== "" ? ` value="${esc(f.value)}"` : "";
-  return `<div class="field"><label>${esc(f.label)}</label><input name="${f.key}" type="${f.type === "number" ? "number" : "text"}" placeholder="${esc(f.placeholder || "")}"${min}${max}${val}></div>`;
-}
-
-function toolPage(slug, state) {
-  const t = OnLead.tool(slug);
-  if (!t) return `<h1>Нет такого инструмента</h1>`;
-  const on = OnLead.toolOn(state, slug);
-  const tasks = state.campaigns[slug] || [];
-  const running = tasks.filter((x) => x.status === "running").length;
-  const olVk = OnLead.vkToolOlPage && OnLead.isVkToolSlug && OnLead.isVkToolSlug(slug);
-  const paywall = on ? "" : `
-    <div class="card" style="margin-bottom:16px">
-      <span class="chip">Не активирован</span>
-      <h3 style="margin-top:8px">${esc(t.name)}</h3>
-      <p>${esc(t.summary)}</p>
-      <div class="toolbar">
-        ${OnLead.PERIODS.map((p) => {
-          const price = Math.round(t.price * p.id * (1 - p.discount));
-          return `<button class="btn btn-ghost" data-act="buy-tool" data-slug="${slug}" data-m="${p.id}" data-amount="${price}">${p.label} · ${price} ₽</button>`;
-        }).join("")}
-      </div>
-    </div>`;
-  const header = olVk ? "" : `
-    <div class="h-row">
-      <div>
-        <div class="muted">Инструмент VK · отдельный сервис</div>
-        <h1>${esc(t.name)}</h1>
-      </div>
-      <span class="status ${on ? "on" : "off"}">${on ? "Активен · триал или подписка" : "Не подключён"}</span>
-    </div>`;
-  const kpi = olVk ? "" : `
-    <p class="muted" style="margin-top:0">${esc(t.summary)}</p>
-    <div class="kpi">
-      <div class="card"><span>Задач</span><b>${tasks.length}</b></div>
-      <div class="card"><span>В работе</span><b>${running}</b></div>
-      ${slug === "image-ai" ? `
-      <div class="card"><span>Готово</span><b>${tasks.reduce((s, c) => s + ((c.stats?.images || []).length), 0)}</b></div>
-      <div class="card"><span>Кредиты</span><b>${state.user?.aiCredits ?? 100}</b></div>` : `
-      <div class="card"><span>${esc(t.metrics[0] || "Действия")}</span><b>${tasks.reduce((s, c) => s + (c.stats?.ok || 0), 0)}</b></div>
-      <div class="card"><span>Ошибки</span><b>${tasks.reduce((s, c) => s + (c.stats?.fail || 0), 0)}</b></div>`}
-    </div>`;
-  const core = `
-    <div class="task-grid" style="margin-top:16px">
-      <form class="card" id="tool-form" data-slug="${slug}">
-        <h3>Запуск</h3>
-        ${slug === "image-ai" ? "" : toolAccountSelect(state)}
-        ${t.fields.map((f) => toolFieldHtml(f, state)).join("")}
-        ${slug === "image-ai" || t.fields.some((f) => f.key === "perDay") ? "" : `<div class="field"><label>Лимит в сутки</label><input name="perDay" type="number" value="20" min="1" max="200"></div>`}
-        <button class="btn btn-primary" type="submit" ${on && (state.accounts.length || slug === "image-ai") ? "" : "disabled"}>${slug === "image-ai" ? "Сгенерировать" : "Запустить"}</button>
-      </form>
-      <div>
-        <h3>Задачи</h3>
-        ${tasks.length ? tasks.map((c) => `<div class="list-item">
-          <div><b>${esc(c.title || t.name || "Задача")}</b>
-            <div class="muted">${esc(taskSubline(c, slug))}</div>
-          </div>
-          <div class="match-actions">
-            <button type="button" class="btn btn-ghost btn-sm" data-act="edit-cam" data-id="${c.id}" data-title="${esc(c.title || "")}">Изменить</button>
-            <button type="button" class="btn btn-ghost btn-sm" data-act="pause-cam" data-id="${c.id}">${c.status === "running" ? "Отключить" : "Включить"}</button>
-            <button type="button" class="btn btn-ghost btn-sm" data-act="del-cam" data-id="${c.id}" data-name="${esc(c.title || "Задача")}">Удалить</button>
-          </div>
-        </div>`).join("") : `<div class="card muted">Пока нет запусков — заполните форму и нажмите «Запустить».</div>`}
-        <div class="card" style="margin-top:12px">
-          <b>Что умеет</b>
-          <ul>${t.features.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>
-        </div>
-      </div>
-    </div>
-    <div id="tool-extra" data-slug="${slug}"></div>
-    ${slug === "autoposting-vk" ? autopostingPanel(state) : ""}
-    ${slug === "image-ai" ? imageGallery(tasks) : ""}
-    ${slug === "massliking-vk" ? masslikeLikedFeed(tasks) : ""}
-    ${slug === "ai-lead-vk" || slug === "lead-vk" ? `<div class="card" style="margin-top:16px"><b>Лиды из этого инструмента</b>
-      ${state.leads.filter((l) => l.source.includes("Лид")).map((l) => `<div class="list-item" style="margin-top:8px"><div><b>${esc(l.name)}</b><div class="muted">${esc(l.note)}</div></div><span class="score">${l.score}/10</span></div>`).join("") || `<p class="muted">Появятся после отправки</p>`}
-    </div>` : ""}
-    ${slug === "grabber-vk" ? `<div class="card" style="margin-top:16px"><b>Собранные посты</b>
-      ${state.lists.filter((l) => (l.source || "").includes("Граббер")).map((l) => {
-        const photos = (l.items || []).filter((it) => (it.attachments || []).length || it.hasPhoto).length;
-        return `<div class="list-item" style="margin-top:8px"><div><b>${esc(l.name)}</b><div class="muted">${esc(l.created)}${photos ? ` · ${photos} с фото` : ""}</div></div><b>${l.count}</b></div>`;
-      }).join("") || `<p class="muted">После запуска список появится здесь и в «Мои списки»</p>`}
-    </div>` : ""}
-  `;
-  if (olVk) return OnLead.vkToolOlPage(slug, state, { t, on, tasks, paywall, body: on ? core : "" });
-  return `${header}${paywall}${on ? kpi + core : ""}`;
-}
 
 function parserPaywall(state, slug) {
   const t = OnLead.tool(slug);
@@ -1655,6 +1403,7 @@ function funnelSecHtml(s = {}) {
     <label class="field"><span>Кнопки через запятую</span><input name="buttons" value="${esc(s.buttons || "")}"></label>
   </div>`;
 }
+OnLead.funnelSecHtml = funnelSecHtml;
 
 function telegramTariffs(state, nav) {
   const months = Math.max(1, Number(hashParams().get("m") || 1));
@@ -2364,9 +2113,9 @@ function landings(path, state) {
 
 function bindOffice() {
   const root = document.getElementById("app");
-  root.onclick = onClick;
+  root.onclick = (e) => OnLead.handleOfficeClick?.(e);
   OnLead.bindOfficeChrome?.();
-  $("#tool-form")?.addEventListener("submit", onToolSubmit);
+  $("#tool-form")?.addEventListener("submit", (e) => OnLead.onToolSubmit?.(e));
   $("#tool-form [name=accountId]")?.addEventListener("change", () => {
     const slug = $("#tool-form")?.dataset.slug;
     if (slug) loadToolExtras(slug);
@@ -2436,6 +2185,7 @@ function pollToolCampaigns() {
     }
   }, 4000);
 }
+OnLead.pollToolCampaigns = pollToolCampaigns;
 
 let vkConnecting = false;
 
@@ -2527,6 +2277,7 @@ function choosePayMethod({ amount, balance }) {
     host.querySelector("[data-pay=yookassa]")?.focus();
   });
 }
+OnLead.choosePayMethod = choosePayMethod;
 
 async function startCheckout(body, btn) {
   if (OnLead._checkoutBusy) return;
@@ -2571,6 +2322,7 @@ async function startCheckout(body, btn) {
     OnLead._checkoutBusy = false;
   }
 }
+OnLead.startCheckout = startCheckout;
 
 function onVkOAuthMessage(e) {
   if (e.origin !== location.origin) return;
@@ -2614,6 +2366,7 @@ async function refreshVkChannelsFromBrowser(accountId, status) {
   if (status) status.textContent = `Загружено сообществ: ${groups.length}`;
   await render();
 }
+OnLead.refreshVkChannelsFromBrowser = refreshVkChannelsFromBrowser;
 
 async function refreshVkChannels(accountId, statusEl) {
   const status = statusEl || document.querySelector(`.vk-ch-status[data-id="${CSS.escape(accountId)}"]`);
@@ -2642,6 +2395,7 @@ async function refreshVkChannels(accountId, statusEl) {
     }
   }
 }
+OnLead.refreshVkChannels = refreshVkChannels;
 
 async function finishVkConnect({ accessToken, userId }) {
   if (!accessToken || vkConnecting) return;
@@ -2700,6 +2454,7 @@ async function startVkOAuth() {
     else alert(err.message);
   }
 }
+OnLead.startVkOAuth = startVkOAuth;
 
 async function startVkMessagesOAuth(accountId) {
   if (accountId) {
@@ -2725,6 +2480,7 @@ async function startVkMessagesOAuth(accountId) {
     else alert(err.message);
   }
 }
+OnLead.startVkMessagesOAuth = startVkMessagesOAuth;
 
 async function saveVkMessagesToken(accountId) {
   const box = document.querySelector(`.vk-msg-paste[data-id="${CSS.escape(accountId)}"]`);
@@ -2748,6 +2504,7 @@ async function saveVkMessagesToken(accountId) {
     else alert(err.message);
   }
 }
+OnLead.saveVkMessagesToken = saveVkMessagesToken;
 
 function openVkConnectModal() {
   const modal = document.getElementById("vk-connect-modal");
@@ -2756,6 +2513,7 @@ function openVkConnectModal() {
   document.body.classList.add("vk-modal-open");
   modal.querySelector("#vk-token-paste")?.focus();
 }
+OnLead.openVkConnectModal = openVkConnectModal;
 
 function closeVkConnectModal() {
   const modal = document.getElementById("vk-connect-modal");
@@ -2763,6 +2521,7 @@ function closeVkConnectModal() {
   modal.hidden = true;
   document.body.classList.remove("vk-modal-open");
 }
+OnLead.closeVkConnectModal = closeVkConnectModal;
 
 function openVkEventLogModal() {
   document.querySelector(".vk-event-modal")?.remove();
@@ -2788,6 +2547,7 @@ function openVkEventLogModal() {
     host.querySelector(".vk-slot__hint").textContent = err.message;
   });
 }
+OnLead.openVkEventLogModal = openVkEventLogModal;
 
 function closeVkEventLogModal() {
   document.querySelector(".vk-event-modal")?.remove();
@@ -2795,6 +2555,7 @@ function closeVkEventLogModal() {
     document.body.classList.remove("vk-modal-open");
   }
 }
+OnLead.closeVkEventLogModal = closeVkEventLogModal;
 
 function saveVkTokenFromPaste() {
   const raw = $("#vk-token-paste")?.value || "";
@@ -2806,1181 +2567,15 @@ function saveVkTokenFromPaste() {
   }
   finishVkConnect(parsed);
 }
+OnLead.saveVkTokenFromPaste = saveVkTokenFromPaste;
 
-async function onClick(e) {
-  const btn = e.target.closest("[data-act]");
-  if (e.target.closest(".lk-side a") && lkNavNarrow()) setLkNav(false);
-  if (!btn) return;
-  if (btn.disabled || btn.hasAttribute("disabled")) return;
-  if (btn.tagName === "BUTTON") e.preventDefault();
-  const act = btn.dataset.act;
-  try {
-    if (act === "logout") {
-      OnLead._lgChecked = undefined;
-      OnLead._lgLoadedGroups = null;
-      OnLead.logout();
-      render();
-      return;
-    }
-    if (act === "lk-nav-toggle") {
-      const app = document.querySelector(".app");
-      setLkNav(!app?.classList.contains("nav-open"));
-      return;
-    }
-    if (act === "lk-nav-close") {
-      setLkNav(false);
-      return;
-    }
-    if (act === "topup") {
-      await startCheckout({ kind: "topup", amount: Number(btn.dataset.amount || 1000) }, btn);
-      return;
-    }
-    if (act === "dash-chart") {
-      OnLead._chartDays = Number(btn.dataset.days || 30);
-      await render();
-      return;
-    }
-    if (act === "sub-period") {
-      OnLead._packMonths = Number(btn.dataset.m || 1);
-      await render();
-      return;
-    }
-    if (act === "promo-hide") {
-      try { localStorage.setItem("onlead-promo-hide", "1"); } catch { /* ignore */ }
-      await render();
-      return;
-    }
-    if (act === "dash-onboarding-dismiss") {
-      try { localStorage.setItem("onlead.onboarding.dismissed", "1"); } catch { /* ignore */ }
-      await render();
-      return;
-    }
-    if (act === "transfer-ref") {
-      await OnLead.api("/api/billing/transfer-ref", { method: "POST", body: { amount: "all" } });
-      OnLead._flash = "Реферальный баланс переведён на основной счёт.";
-      await OnLead.refresh();
-      await render();
-      return;
-    }
-    if (act === "resume-pay") {
-      const kind = btn.dataset.kind || "topup";
-      const body = { kind, method: "yookassa" };
-      if (kind === "topup") body.amount = Number(btn.dataset.amount || 1000);
-      if (kind === "package") {
-        body.packageId = btn.dataset.package;
-        body.months = Number(btn.dataset.m || 1);
-      }
-      if (kind === "tool") {
-        body.slug = btn.dataset.slug;
-        body.months = Number(btn.dataset.m || 1);
-      }
-      if (kind === "tg-plan") {
-        body.tgPlan = btn.dataset.tgplan;
-        body.months = Number(btn.dataset.m || 1);
-      }
-      await startCheckout(body, btn);
-      return;
-    }
-    if (act === "copy") {
-      navigator.clipboard?.writeText(btn.dataset.text || "");
-      btn.textContent = "Скопировано";
-      return;
-    }
-    if (act === "save-profile") {
-      await OnLead.api("/api/me", { method: "PATCH", body: { name: $("#prof-name").value, email: $("#prof-email").value } });
-      await render(); return;
-    }
-    if (act === "vk-connect-open") { openVkConnectModal(); return; }
-    if (act === "vk-connect-close") { closeVkConnectModal(); return; }
-    if (act === "vk-event-log") { openVkEventLogModal(); return; }
-    if (act === "vk-event-close") { closeVkEventLogModal(); return; }
-    if (act === "vk-rent-slot") { go("/office/subscriptions"); return; }
-    if (act === "vk-login") { await startVkOAuth(); return; }
-    if (act === "vk-refresh-channels") { await refreshVkChannels(btn.dataset.id); return; }
-    if (act === "vk-save-token") { saveVkTokenFromPaste(); return; }
-    if (act === "vk-msg-login") { await startVkMessagesOAuth(btn.dataset.id); return; }
-    if (act === "vk-msg-save") { await saveVkMessagesToken(btn.dataset.id); return; }
-    if (act === "vk-msg-clear") {
-      await OnLead.api("/api/accounts/" + btn.dataset.id + "/messages-token", {
-        method: "POST",
-        body: { clear: true },
-      });
-      await render();
-      return;
-    }
-    if (act === "vk-mock") {
-      await OnLead.api("/api/accounts", { method: "POST", body: { token: "mock:vk" } });
-      await render(); return;
-    }
-    if (act === "lg-save-cfg") { await saveLeadgenCfg(); return; }
-    if (act === "lg-scan") { await startLeadgenScan(); return; }
-    if (act === "lg-load-groups") { await loadLeadgenGroups(); return; }
-    if (act === "lg-save-groups") {
-      await saveLeadgenGroups(true);
-      document.getElementById("lg-groups-modal")?.setAttribute("hidden", "");
-      return;
-    }
-    if (act === "lg-del-phrase") { await removeLeadgenPhrase(btn.dataset.id); return; }
-    if (act === "lg-del-exclude") { await removeLeadgenExclude(btn.dataset.text); return; }
-    if (act === "lg-niche") { await addLeadgenNiche(btn.dataset.id); return; }
-    if (act === "lg-save-match") {
-      await OnLead.api("/api/leadgen/matches/" + btn.dataset.id, { method: "PATCH", body: { saveToCrm: true } });
-      await render(); return;
-    }
-    if (act === "lg-del-match") {
-      await OnLead.api("/api/leadgen/matches/" + btn.dataset.id, { method: "PATCH", body: { status: "dismissed" } });
-      await render(); return;
-    }
-    if (act === "lg-restore-match") {
-      await OnLead.api("/api/leadgen/matches/" + btn.dataset.id, { method: "PATCH", body: { status: "new" } });
-      await render(); return;
-    }
-    if (act === "lg-filter") {
-      OnLead._lgFilter = OnLead._lgFilter || { status: "", kind: "", phrase: "", author: "" };
-      OnLead._lgFilter[btn.dataset.key] = btn.dataset.val;
-      await render(); return;
-    }
-    if (act === "lg-apply-filters") {
-      OnLead._lgFilter = OnLead._lgFilter || { status: "", kind: "", phrase: "", author: "" };
-      OnLead._lgFilter.phrase = document.getElementById("lg-filter-phrase")?.value || "";
-      OnLead._lgFilter.author = document.getElementById("lg-filter-author")?.value || "";
-      await render(); return;
-    }
-    if (act === "lg-toggle-enabled") {
-      await OnLead.api("/api/leadgen", { method: "PATCH", body: { enabled: btn.dataset.val === "1" } });
-      await OnLead.refresh();
-      await render(); return;
-    }
-    if (act === "lg-mark-saved") {
-      await OnLead.api("/api/leadgen/matches/" + btn.dataset.id, { method: "PATCH", body: { status: "saved" } });
-      await render(); return;
-    }
-    if (act === "lg-delete-match") {
-      if (!confirm("Удалить совпадение безвозвратно?")) return;
-      await OnLead.api("/api/leadgen/matches/" + btn.dataset.id, { method: "DELETE" });
-      await render(); return;
-    }
-    if (act === "lg-expand-match") {
-      OnLead._lgExpanded = OnLead._lgExpanded === btn.dataset.id ? null : btn.dataset.id;
-      await render(); return;
-    }
-    if (act === "lg-ai-score") {
-      btn.disabled = true;
-      try {
-        await OnLead.api("/api/leadgen/matches/" + btn.dataset.id + "/ai-score", { method: "POST" });
-        await OnLead.refresh();
-        OnLead._lgExpanded = btn.dataset.id;
-        await render();
-      } catch (err) { alert(err.message); }
-      finally { btn.disabled = false; }
-      return;
-    }
-    if (act === "lg-ai-draft") {
-      btn.disabled = true;
-      try {
-        await OnLead.api("/api/leadgen/matches/" + btn.dataset.id + "/ai-draft", { method: "POST" });
-        await OnLead.refresh();
-        OnLead._lgExpanded = btn.dataset.id;
-        await render();
-      } catch (err) { alert(err.message); }
-      finally { btn.disabled = false; }
-      return;
-    }
-    if (act === "lg-copy-draft") {
-      await navigator.clipboard?.writeText(btn.dataset.text || "");
-      btn.textContent = "Скопировано";
-      return;
-    }
-    if (act === "lg-open-groups") {
-      document.getElementById("lg-groups-modal")?.removeAttribute("hidden");
-      await loadLeadgenGroups();
-      return;
-    }
-    if (act === "lg-close-groups") {
-      document.getElementById("lg-groups-modal")?.setAttribute("hidden", "");
-      return;
-    }
-    if (act === "nc-tab") {
-      OnLead._ncTab = btn.dataset.tab || "settings";
-      OnLead._ncDialogId = "";
-      OnLead._ncThread = null;
-      await render();
-      return;
-    }
-    if (act === "nc-task-filter") {
-      OnLead._ncTaskFilter = btn.dataset.val || "";
-      await render();
-      return;
-    }
-    if (act === "nc-toggle-enabled") {
-      const cfg = OnLead.load().neurocomments || {};
-      await OnLead.api("/api/neurocomments", { method: "PATCH", body: { enabled: !cfg.enabled } });
-      await OnLead.refresh();
-      await render();
-      return;
-    }
-    if (act === "nc-discover") {
-      await OnLead.api("/api/neurocomments/discover", { method: "POST" });
-      await OnLead.refresh();
-      OnLead._flash = "Поиск постов выполнен";
-      await render();
-      return;
-    }
-    if (act === "nc-save-settings") {
-      await OnLead.api("/api/neurocomments", {
-        method: "PATCH",
-        body: {
-          accountId: document.getElementById("nc-account")?.value || null,
-          dailyLimit: Number(document.getElementById("nc-limit")?.value || 20),
-          tonePrompt: document.getElementById("nc-tone")?.value || "",
-        },
-      });
-      await OnLead.refresh();
-      OnLead._flash = "Настройки сохранены";
-      await render();
-      return;
-    }
-    if (act === "nc-toggle-mode") {
-      const key = btn.dataset.key;
-      const val = btn.dataset.val === "1";
-      if (!key) return;
-      await OnLead.api("/api/neurocomments", { method: "PATCH", body: { [key]: val } });
-      await OnLead.refresh();
-      await render();
-      return;
-    }
-    if (act === "nc-add-target") {
-      const raw = String(document.getElementById("nc-target-raw")?.value || "").trim();
-      if (!raw) return alert("Укажите ссылку или id");
-      await OnLead.api("/api/neurocomments/targets", {
-        method: "POST",
-        body: { mode: document.getElementById("nc-target-mode")?.value || "wall", raw },
-      });
-      await OnLead.refresh();
-      await render();
-      return;
-    }
-    if (act === "nc-del-target") {
-      await OnLead.api("/api/neurocomments/targets/" + btn.dataset.id, { method: "DELETE" });
-      await OnLead.refresh();
-      await render();
-      return;
-    }
-    if (act === "nc-cancel-task") {
-      await OnLead.api("/api/neurocomments/tasks/" + btn.dataset.id + "/cancel", { method: "POST" });
-      await OnLead.refresh();
-      await render();
-      return;
-    }
-    if (act === "nc-add-block") {
-      const recipientId = String(document.getElementById("nc-block-id")?.value || "").trim();
-      if (!recipientId) return alert("Укажите id");
-      await OnLead.api("/api/neurocomments/blocks", { method: "POST", body: { recipientId } });
-      await OnLead.refresh();
-      await render();
-      return;
-    }
-    if (act === "nc-del-block") {
-      await OnLead.api("/api/neurocomments/blocks/" + btn.dataset.id, { method: "DELETE" });
-      await OnLead.refresh();
-      await render();
-      return;
-    }
-    if (act === "nc-pick-dialog") {
-      OnLead._ncDialogId = btn.dataset.id;
-      OnLead._ncThread = null;
-      await render();
-      try {
-        OnLead._ncThread = await OnLead.api("/api/neurocomments/dialogs/" + btn.dataset.id);
-        await render();
-      } catch (err) {
-        alert(err.message);
-      }
-      return;
-    }
-    if (act === "nc-faq") {
-      OnLead._ncFaqTab = btn.dataset.tab || "overview";
-      OnLead._ncFaqOpen = true;
-      await render();
-      return;
-    }
-    if (act === "nc-faq-close") {
-      OnLead._ncFaqOpen = false;
-      await render();
-      return;
-    }
-    if (act === "al-toggle") {
-      const cfg = OnLead.load().aiLead || {};
-      await OnLead.api("/api/ai-lead", { method: "PATCH", body: { enabled: !cfg.enabled } });
-      OnLead._alRunMsg = "";
-      OnLead._alRunErr = "";
-      await render();
-      return;
-    }
-    if (act === "al-save" || act === "al-save-list") {
-      const body = OnLead.aiLeadCollectForm ? OnLead.aiLeadCollectForm() : {};
-      await OnLead.api("/api/ai-lead", { method: "PATCH", body });
-      OnLead._flash = "Сценарий сохранён";
-      await render();
-      return;
-    }
-    if (act === "al-run") {
-      try {
-        OnLead._alRunErr = "";
-        const body = OnLead.aiLeadCollectForm ? OnLead.aiLeadCollectForm() : {};
-        await OnLead.api("/api/ai-lead", { method: "PATCH", body });
-        const r = await OnLead.api("/api/ai-lead/run", { method: "POST" });
-        OnLead._alRunMsg = r.message || "Готово";
-        await OnLead.refresh();
-        await render();
-      } catch (err) {
-        OnLead._alRunMsg = "";
-        OnLead._alRunErr = err.message || "Ошибка запуска";
-        await render();
-      }
-      return;
-    }
-    if (act === "tg-funnel-tab") {
-      OnLead._tgFunnelTab = btn.dataset.tab || "products";
-      OnLead._tgFunnelCacheId = null;
-      await render();
-      return;
-    }
-    if (act === "tg-product-save") {
-      const fid = btn.dataset.fid;
-      const pid = btn.dataset.pid;
-      const body = OnLead.tgProductCollect ? OnLead.tgProductCollect() : {};
-      if (pid) {
-        await OnLead.api("/api/tg/funnels/" + fid + "/products/" + pid, { method: "PATCH", body });
-      } else {
-        await OnLead.api("/api/tg/funnels/" + fid + "/products", { method: "POST", body });
-      }
-      OnLead._tgProductDraft = null;
-      OnLead._tgFunnelCacheId = null;
-      await render();
-      return;
-    }
-    if (act === "tg-product-edit") {
-      try { OnLead._tgProductDraft = JSON.parse(btn.dataset.json || "{}"); } catch { OnLead._tgProductDraft = {}; }
-      await render();
-      return;
-    }
-    if (act === "tg-product-cancel") {
-      OnLead._tgProductDraft = null;
-      await render();
-      return;
-    }
-    if (act === "tg-product-toggle") {
-      await OnLead.api("/api/tg/funnels/" + btn.dataset.fid + "/products/" + btn.dataset.pid, {
-        method: "PATCH",
-        body: { active: btn.dataset.active === "1" },
-      });
-      OnLead._tgFunnelCacheId = null;
-      await render();
-      return;
-    }
-    if (act === "tg-product-del") {
-      if (!confirmDel("товар")) return;
-      await OnLead.api("/api/tg/funnels/" + btn.dataset.fid + "/products/" + btn.dataset.pid, { method: "DELETE" });
-      OnLead._tgFunnelCacheId = null;
-      await render();
-      return;
-    }
-    if (act === "lb-tab") {
-      OnLead._lbTab = btn.dataset.tab || "list";
-      await render();
-      return;
-    }
-    if (act === "lb-pick-kind") {
-      OnLead._lbKind = btn.dataset.kind || "lead";
-      await render();
-      return;
-    }
-    if (act === "lb-create") {
-      const r = await OnLead.api("/api/lead-bots", {
-        method: "POST",
-        body: {
-          kind: OnLead._lbKind || "lead",
-          business: document.getElementById("lb-business")?.value || "",
-          city: document.getElementById("lb-city")?.value || "",
-          goal: document.getElementById("lb-goal")?.value || "",
-          contact: document.getElementById("lb-contact")?.value || "",
-        },
-      });
-      OnLead._lbTab = "list";
-      if (r.kind === "widget") {
-        const sn = await OnLead.api("/api/lead-bots/" + r.id + "/widget-snippet");
-        OnLead._lbSnippet = sn.snippet || "";
-      }
-      await OnLead.refresh();
-      await render();
-      return;
-    }
-    if (act === "lb-snippet") {
-      const sn = await OnLead.api("/api/lead-bots/" + btn.dataset.id + "/widget-snippet");
-      OnLead._lbSnippet = sn.snippet || "";
-      await render();
-      return;
-    }
-    if (act === "lb-snippet-close") {
-      OnLead._lbSnippet = "";
-      await render();
-      return;
-    }
-    if (act === "lb-copy-snippet") {
-      const ta = document.querySelector(".tg-snippet-ta");
-      if (ta) {
-        ta.select();
-        try { document.execCommand("copy"); OnLead._flash = "Сниппет скопирован"; } catch { /* ignore */ }
-      }
-      return;
-    }
-    if (act === "lb-funnel") {
-      const r = await OnLead.api("/api/lead-bots/" + btn.dataset.id + "/deploy-funnel", { method: "POST" });
-      OnLead._flash = "Воронка создана из сценария";
-      await OnLead.refresh();
-      if (r.funnel?.id) go("/office/telegram/funnels/" + r.funnel.id);
-      else await render();
-      return;
-    }
-    if (act === "lb-del") {
-      if (!confirmDel(btn.dataset.name || "бот")) return;
-      await OnLead.api("/api/lead-bots/" + btn.dataset.id, { method: "DELETE" });
-      await OnLead.refresh();
-      await render();
-      return;
-    }
-    if (act === "lg-save-notify") {
-      const excludes = String(document.getElementById("lg-excludes")?.value || "")
-        .split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
-      await OnLead.api("/api/leadgen", {
-        method: "PATCH",
-        body: {
-          notifyEmail: !!document.getElementById("lg-notify-email")?.checked,
-          notifyTelegram: !!document.getElementById("lg-notify-tg")?.checked,
-          telegramChatId: document.getElementById("lg-tg-chat")?.value || "",
-          excludePhrases: excludes,
-        },
-      });
-      OnLead._flash = "Настройки уведомлений сохранены";
-      await render(); return;
-    }
-    if (act === "lg-groups-all" || act === "lg-groups-none") {
-      applyLeadgenGroupChecks(act === "lg-groups-all");
-      return;
-    }
-    if (act === "list-del") {
-      if (!confirmDel(btn.dataset.name || "список")) return;
-      await OnLead.api("/api/lists/" + btn.dataset.id, { method: "DELETE" });
-      go("/office/tools/lists");
-      await render();
-      return;
-    }
-    if (act === "list-rename") {
-      const name = prompt("Название списка", btn.dataset.name || "");
-      if (name == null) return;
-      const title = name.trim();
-      if (!title) return;
-      await OnLead.api("/api/lists/" + btn.dataset.id, { method: "PATCH", body: { name: title } });
-      await render();
-      return;
-    }
-    if (act === "list-copy") {
-      const list = await OnLead.api("/api/lists/" + btn.dataset.id);
-      const ids = (list.items || []).map((p) => p.id).join("\n");
-      await navigator.clipboard?.writeText(ids);
-      btn.textContent = "Скопировано";
-      return;
-    }
-    if (act === "list-crm") {
-      await OnLead.api("/api/lists/" + btn.dataset.id + "/crm", { method: "POST" });
-      OnLead._flash = "Людей из списка отправили в CRM.";
-      go("/office/crm");
-      await render();
-      return;
-    }
-    if (act === "del-acc") {
-      await OnLead.api("/api/accounts/" + btn.dataset.id, { method: "DELETE" });
-      await render(); return;
-    }
-    if (act === "buy-pack") {
-      await startCheckout({
-        packageId: btn.dataset.id,
-        months: Number(btn.dataset.m || 1),
-        amount: Number(btn.dataset.amount || 0),
-      }, btn);
-      return;
-    }
-    if (act === "buy-tool") {
-      await startCheckout({ slug: btn.dataset.slug, months: Number(btn.dataset.m || 1), amount: Number(btn.dataset.amount || 0) }, btn);
-      return;
-    }
-    if (act === "buy-tg") {
-      await startCheckout({ kind: "tg-plan", tgPlan: btn.dataset.plan, months: Number(btn.dataset.m || 1), amount: Number(btn.dataset.amount || 0) }, btn);
-      return;
-    }
-    if (act === "tg-trial") {
-      await OnLead.api("/api/tg/trial", { method: "POST" });
-      OnLead._flash = "Три дня Telegram включены: 1 слот Lite.";
-      await render();
-      return;
-    }
-    if (act === "new-landing") {
-      await createLanding(btn.dataset.name || "Новая страница", btn.dataset.template || "");
-      return;
-    }
-    if (act === "ol-save-landing") {
-      await saveOlLandingEditor();
-      return;
-    }
-    if (act === "ol-ai-generate") {
-      const editor = document.querySelector(".ol-editor");
-      const id = editor?.dataset.id;
-      if (!id) return;
-      const business = document.getElementById("ol-ai-business")?.value || "";
-      const city = document.getElementById("ol-ai-city")?.value || "";
-      btn.disabled = true;
-      try {
-        await OnLead.api("/api/landings/" + id + "/generate", { method: "POST", body: { business, city } });
-        OnLead._flash = "AI переписал тексты — проверьте блоки и сохраните.";
-        await OnLead.refresh();
-        await render();
-      } catch (err) {
-        alert(err.message);
-      } finally {
-        btn.disabled = false;
-      }
-      return;
-    }
-    if (act === "ol-preview-toggle") {
-      const box = document.getElementById("ol-preview-box");
-      const editor = document.querySelector(".ol-editor");
-      if (!box || !editor) return;
-      const open = box.hasAttribute("hidden");
-      if (open) {
-        const page = (OnLead.load().landings || []).find((p) => p.id === editor.dataset.id) || {};
-        const content = OnLead.collectLandingOlContent(editor, page);
-        box.innerHTML = OnLead.landingOlPublicHtml({ ...page, content }, { preview: true });
-        box.removeAttribute("hidden");
-        btn.textContent = "Скрыть предпросмотр";
-      } else {
-        box.setAttribute("hidden", "");
-        box.innerHTML = "";
-        btn.textContent = "Предпросмотр";
-      }
-      return;
-    }
-    if (act === "publish-landing") {
-      const olEd = document.querySelector(".ol-editor");
-      let body = { status: btn.dataset.status };
-      if (olEd) {
-        const page = (OnLead.load().landings || []).find((p) => p.id === olEd.dataset.id) || {};
-        const content = OnLead.collectLandingOlContent(olEd, page);
-        const pro = OnLead.collectOlProFields ? OnLead.collectOlProFields(olEd) : {};
-        body = {
-          name: document.getElementById("ol-title")?.value || page.name,
-          slug: document.getElementById("ol-slug")?.value || page.slug,
-          seoDescription: document.getElementById("ol-seo")?.value || "",
-          content,
-          ...pro,
-          status: btn.dataset.status,
-        };
-      } else {
-        const form = $("#landing-edit-form");
-        if (form) body = { ...landingFromForm(form), status: btn.dataset.status };
-      }
-      await OnLead.api("/api/landings/" + btn.dataset.id, { method: "PATCH", body });
-      OnLead._flash = btn.dataset.status === "published" ? "Страница опубликована — можно делиться ссылкой." : "Страница снята с публикации.";
-      await render();
-      return;
-    }
-    if (act === "copy-landing-url") {
-      await navigator.clipboard?.writeText(btn.dataset.url || "");
-      btn.textContent = "Скопировано";
-      return;
-    }
-    if (act === "del-landing") {
-      if (!confirmDel(btn.dataset.name || "страницу")) return;
-      await OnLead.api("/api/landings/" + btn.dataset.id, { method: "DELETE" });
-      OnLead._flash = "Страницу удалили.";
-      go("/office/landings");
-      await render();
-      return;
-    }
-    if (act === "crm-pick") {
-      OnLead._crmSelectedId = btn.dataset.id;
-      await render();
-      return;
-    }
-    if (act === "compose-ai") {
-      const form = document.getElementById("compose-form");
-      const id = form?.dataset.id;
-      if (!id) { alert("Сначала сохраните черновик"); return; }
-      await OnLead.saveComposeDraft(form, { quiet: true });
-      try {
-        await OnLead.api("/api/posts/" + id + "/ai-text", { method: "POST", body: {} });
-        OnLead._flash = "Текст сгенерирован";
-        await render();
-      } catch (err) { alert(err.message); }
-      return;
-    }
-    if (act === "compose-schedule") {
-      const form = document.getElementById("compose-form");
-      if (!form) return;
-      const body = OnLead.composeFormBody(form);
-      if (!body.scheduledAt) { alert("Укажите дату и время в поле «Расписание»"); return; }
-      body.status = "scheduled";
-      const id = form.dataset.id;
-      if (id) await OnLead.api("/api/posts/" + id, { method: "PATCH", body });
-      else await OnLead.saveComposeDraft(form);
-      OnLead._flash = "Пост запланирован";
-      go("/office/content");
-      await render();
-      return;
-    }
-    if (act === "compose-publish") {
-      const form = document.getElementById("compose-form");
-      if (!form) return;
-      const id = await OnLead.saveComposeDraft(form, { quiet: true });
-      const fd = new FormData(form);
-      try {
-        const r = await OnLead.api("/api/posts/" + id + "/publish", {
-          method: "POST",
-          body: { accountId: fd.get("accountId"), ownerId: fd.get("ownerId") },
-        });
-        OnLead._flash = r.result?.permalink ? "Опубликовано в VK" : "Готово";
-        await render();
-      } catch (err) { alert(err.message); }
-      return;
-    }
-    if (act === "compose-trash") {
-      if (!confirmDel("пост")) return;
-      await OnLead.api("/api/posts/" + btn.dataset.id, { method: "DELETE" });
-      OnLead._flash = "Пост в корзине";
-      go("/office/content");
-      await render();
-      return;
-    }
-    if (act === "compose-submit-approval") {
-      const form = document.getElementById("compose-form");
-      if (!form) return;
-      const id = await OnLead.saveComposeDraft(form, { quiet: true });
-      try {
-        await OnLead.api("/api/posts/" + id + "/submit-approval", { method: "POST" });
-        OnLead._flash = "Отправлено на согласование";
-        go("/office/workflow");
-        await render();
-      } catch (err) { alert(err.message); }
-      return;
-    }
-    if (act === "compose-pick-media") {
-      try {
-        const lib = await OnLead.api("/api/media/library");
-        const rows = [...(lib.uploads || []), ...(lib.ai || [])];
-        if (!rows.length) { alert("Медиатека пуста — загрузите фото или создайте в AI-картинках"); return; }
-        const list = rows.slice(0, 8).map((r, i) => `${i + 1}. ${(r.prompt || r.name || r.url).slice(0, 40)}`).join("\n");
-        const n = prompt(`Номер фото (1–${Math.min(8, rows.length)}):\n${list}`);
-        const idx = Number(n) - 1;
-        if (idx >= 0 && rows[idx]) {
-          OnLead._composePickMedia = rows[idx].url;
-          await render();
-        }
-      } catch (err) { alert(err.message); }
-      return;
-    }
-    if (act === "ai-use-compose") {
-      OnLead._composePickMedia = btn.dataset.url || "";
-      go("/office/compose");
-      return;
-    }
-    if (act === "ai-preset") {
-      const ta = document.querySelector('#ai-images-form [name="prompt"]');
-      if (ta) ta.value = btn.textContent.trim();
-      return;
-    }
-    if (act === "cal-prev") {
-      const d = OnLead._calMonth || new Date();
-      OnLead._calMonth = new Date(d.getFullYear(), d.getMonth() - 1, 1);
-      await OnLead.loadContentCalendar?.();
-      await render();
-      return;
-    }
-    if (act === "cal-next") {
-      const d = OnLead._calMonth || new Date();
-      OnLead._calMonth = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-      await OnLead.loadContentCalendar?.();
-      await render();
-      return;
-    }
-    if (act === "wf-approve") {
-      await OnLead.api("/api/posts/" + btn.dataset.id + "/approve", { method: "POST" });
-      OnLead._flash = "Пост утверждён";
-      await OnLead.loadWorkflow?.();
-      await render();
-      return;
-    }
-    if (act === "wf-reject") {
-      const reason = prompt("Причина отклонения (необязательно)") || "";
-      await OnLead.api("/api/posts/" + btn.dataset.id + "/reject", { method: "POST", body: { reason } });
-      OnLead._flash = "Пост отклонён";
-      await OnLead.loadWorkflow?.();
-      await render();
-      return;
-    }
-    if (act === "wf-mode") {
-      await OnLead.api("/api/workflow/settings", { method: "PATCH", body: { approvalMode: btn.dataset.mode } });
-      OnLead._flash = "Режим сохранён";
-      await OnLead.loadWorkflow?.();
-      await render();
-      return;
-    }
-    if (act === "repost-pick-src") {
-      OnLead._repostSourceId = btn.dataset.id;
-      await render();
-      return;
-    }
-    if (act === "repost-fetch") {
-      try {
-        const r = await OnLead.api("/api/repost/sources/" + btn.dataset.id + "/fetch", { method: "POST" });
-        OnLead._flash = `+${r.created || 0} новых, ${r.updated || 0} обновлено`;
-        await OnLead.loadRepostItems?.();
-      } catch (err) { alert(err.message); }
-      return;
-    }
-    if (act === "repost-del-src") {
-      if (!confirmDel("источник")) return;
-      await OnLead.api("/api/repost/sources/" + btn.dataset.id, { method: "DELETE" });
-      OnLead._repostSourceId = "";
-      OnLead._flash = "Источник удалён";
-      await render();
-      return;
-    }
-    if (act === "repost-save-src") {
-      const card = btn.closest(".ap-settings");
-      const wallSel = card?.querySelector('[name="ownerId"]');
-      const wallOpt = wallSel?.selectedOptions?.[0];
-      await OnLead.api("/api/repost/sources/" + btn.dataset.id, {
-        method: "PATCH",
-        body: {
-          enabled: card?.querySelector('[name="enabled"]')?.checked,
-          onlineMode: card?.querySelector('[name="onlineMode"]')?.checked,
-          includeKeywords: card?.querySelector('[name="includeKeywords"]')?.value,
-          excludeKeywords: card?.querySelector('[name="excludeKeywords"]')?.value,
-          accountId: card?.querySelector('[name="accountId"]')?.value,
-          ownerId: wallSel?.value,
-          ownerLabel: wallOpt?.textContent || "",
-        },
-      });
-      OnLead._flash = "Настройки сохранены";
-      return;
-    }
-    if (act === "repost-import") {
-      const sourceId = document.getElementById("repost-items-box")?.dataset.source;
-      const ids = [...document.querySelectorAll('input[name="repost-item"]:checked')].map((el) => el.value);
-      if (!sourceId || !ids.length) { alert("Выберите посты"); return; }
-      try {
-        const r = await OnLead.api("/api/repost/import", { method: "POST", body: { sourceId, items: ids.map((itemId) => ({ itemId })) } });
-        OnLead._flash = `Импортировано: ${r.imported || 0}`;
-        await OnLead.loadRepostItems?.();
-      } catch (err) { alert(err.message); }
-      return;
-    }
-    if (act === "cnt-copy-url") {
-      await navigator.clipboard?.writeText(btn.dataset.url || "");
-      btn.textContent = "OK";
-      return;
-    }
-    if (act === "cnt-del-media") {
-      if (!confirm("Удалить файл?")) return;
-      await OnLead.api("/api/media/" + btn.dataset.name, { method: "DELETE" });
-      OnLead._flash = "Файл удалён";
-      await OnLead.loadContentMediaGrid?.();
-      return;
-    }
-    if (act === "rss-pick-src") {
-      OnLead._rssSourceId = btn.dataset.id;
-      await render();
-      return;
-    }
-    if (act === "webhook-copy") {
-      const url = OnLead._inboundWebhookUrl || document.querySelector(".ap-webhook-url")?.value || "";
-      if (url) await navigator.clipboard?.writeText(url);
-      btn.textContent = "Скопировано";
-      setTimeout(() => { btn.textContent = "Копировать URL"; }, 1500);
-      return;
-    }
-    if (act === "webhook-rotate") {
-      if (!confirm("Старый URL перестанет работать. Сменить токен?")) return;
-      try {
-        const r = await OnLead.api("/api/webhooks/inbound/token/rotate", { method: "POST" });
-        OnLead._inboundWebhookUrl = r.url || "";
-        OnLead._flash = "Webhook URL обновлён";
-        await render();
-      } catch (err) { alert(err.message); }
-      return;
-    }
-    if (act === "rss-fetch") {
-      try {
-        const r = await OnLead.api("/api/rss/sources/" + btn.dataset.id + "/fetch", { method: "POST" });
-        OnLead._flash = `+${r.created || 0} новых, ${r.updated || 0} обновлено`;
-        await render();
-      } catch (err) { alert(err.message); }
-      return;
-    }
-    if (act === "rss-del-src") {
-      if (!confirmDel(btn.dataset.name || "источник")) return;
-      await OnLead.api("/api/rss/sources/" + btn.dataset.id, { method: "DELETE" });
-      OnLead._rssSourceId = "";
-      OnLead._flash = "Источник удалён";
-      await render();
-      return;
-    }
-    if (act === "rss-save-src") {
-      const card = btn.closest(".ap-settings");
-      const wallSel = card?.querySelector('[name="ownerId"]');
-      const wallOpt = wallSel?.selectedOptions?.[0];
-      await OnLead.api("/api/rss/sources/" + btn.dataset.id, {
-        method: "PATCH",
-        body: {
-          enabled: card?.querySelector('[name="enabled"]')?.checked,
-          onlineMode: card?.querySelector('[name="onlineMode"]')?.checked,
-          aiRewrite: card?.querySelector('[name="aiRewrite"]')?.checked,
-          accountId: card?.querySelector('[name="accountId"]')?.value,
-          ownerId: wallSel?.value,
-          ownerLabel: wallOpt?.textContent || "",
-        },
-      });
-      OnLead._flash = "Настройки сохранены";
-      await render();
-      return;
-    }
-    if (act === "rss-import") {
-      const sourceId = btn.dataset.source || document.getElementById("rss-items-box")?.dataset.source;
-      const ids = [...document.querySelectorAll('input[name="rss-item"]:checked')].map((el) => el.value);
-      if (!ids.length) { alert("Отметьте записи"); return; }
-      try {
-        const r = await OnLead.api("/api/rss/import", {
-          method: "POST",
-          body: { sourceId, items: ids.map((id) => ({ itemId: id })) },
-        });
-        OnLead._flash = `Импортировано: ${r.imported}`;
-        go("/office/content");
-        await render();
-      } catch (err) { alert(err.message); }
-      return;
-    }
-    if (act === "cross-plat") {
-      const p = btn.dataset.plat;
-      const plats = OnLead._crosspostPlats || ["vk", "telegram"];
-      OnLead._crosspostPlats = plats.includes(p) ? plats.filter((x) => x !== p) : [...plats, p];
-      await render();
-      return;
-    }
-    if (act === "cross-adapt") {
-      OnLead._crosspostSource = document.getElementById("cross-source")?.value || "";
-      try {
-        const r = await OnLead.api("/api/crosspost/adapt", {
-          method: "POST",
-          body: { text: OnLead._crosspostSource, platforms: OnLead._crosspostPlats || ["vk", "telegram"] },
-        });
-        OnLead._crosspostVersions = r.versions || {};
-        OnLead._flash = "Адаптации готовы";
-        await render();
-      } catch (err) { alert(err.message); }
-      return;
-    }
-    if (act === "cross-drafts") {
-      const versions = OnLead.collectCrosspostVersions ? OnLead.collectCrosspostVersions() : OnLead._crosspostVersions;
-      const acc = document.getElementById("cross-account")?.value;
-      const ownerId = document.getElementById("cross-owner")?.value;
-      const ownerLabel = document.getElementById("cross-owner")?.selectedOptions?.[0]?.textContent || "";
-      try {
-        const r = await OnLead.api("/api/crosspost/drafts", {
-          method: "POST",
-          body: { versions, accountId: acc, ownerId, ownerLabel },
-        });
-        OnLead._flash = `Создано черновиков: ${r.count}`;
-        go("/office/content");
-        await render();
-      } catch (err) { alert(err.message); }
-      return;
-    }
-    if (act === "analytics-days") {
-      OnLead._analyticsDays = Number(btn.dataset.days) || 30;
-      await render();
-      return;
-    }
-    if (act === "cab-del-item") {
-      const kind = btn.dataset.kind;
-      const id = btn.dataset.id;
-      const c = OnLead.load().cabinet || {};
-      const list = (c[kind] || []).filter((x) => x.id !== id);
-      await OnLead.api("/api/cabinet/settings", { method: "PATCH", body: { [kind]: list } });
-      OnLead._flash = "Удалено";
-      await render();
-      return;
-    }
-    if (act === "crm-quick-stage") {
-      await OnLead.patchCrmLead(btn.dataset.id, { stage: btn.dataset.stage });
-      await render();
-      return;
-    }
-    if (act === "new-lead") {
-      const name = prompt("Имя лида", "Новый контакт");
-      if (!name) return;
-      await OnLead.api("/api/leads", { method: "POST", body: { name } });
-      await render(); return;
-    }
-    if (act === "edit-lead") {
-      const name = prompt("Имя", btn.dataset.name || "");
-      if (name == null) return;
-      const phone = prompt("Телефон", btn.dataset.phone || "");
-      if (phone == null) return;
-      const city = prompt("Город", btn.dataset.city || "");
-      if (city == null) return;
-      const note = prompt("Заметка", btn.dataset.note || "");
-      if (note == null) return;
-      await OnLead.api("/api/leads/" + btn.dataset.id, { method: "PATCH", body: { name: name.trim(), phone, city, note } });
-      await render();
-      return;
-    }
-    if (act === "del-lead") {
-      if (!confirmDel(btn.dataset.name || "лид")) return;
-      await OnLead.api("/api/leads/" + btn.dataset.id, { method: "DELETE" });
-      await render();
-      return;
-    }
-    if (act === "archive-lead") {
-      await OnLead.api("/api/leads/" + btn.dataset.id, { method: "PATCH", body: { archived: true } });
-      await render();
-      return;
-    }
-    if (act === "restore-lead") {
-      await OnLead.api("/api/leads/" + btn.dataset.id, { method: "PATCH", body: { archived: false } });
-      await render();
-      return;
-    }
-    if (act === "add-bot") {
-      return;
-    }
-    if (act === "edit-bot") {
-      const name = prompt("Название", btn.dataset.name || "");
-      if (name == null) return;
-      await OnLead.api("/api/bots/" + btn.dataset.id, { method: "PATCH", body: { name: name.trim() } });
-      await render();
-      return;
-    }
-    if (act === "retoken-bot") {
-      const token = prompt("Новый токен из @BotFather", "");
-      if (token == null || !token.trim()) return;
-      try {
-        await OnLead.api("/api/bots/" + btn.dataset.id, { method: "PATCH", body: { token: token.trim() } });
-        OnLead._flash = "Токен обновлён, webhook переустановлен.";
-      } catch (err) {
-        alert(err.message);
-      }
-      await render();
-      return;
-    }
-    if (act === "toggle-bot") {
-      await OnLead.api("/api/bots/" + btn.dataset.id, { method: "PATCH", body: { status: btn.dataset.status } });
-      await render();
-      return;
-    }
-    if (act === "del-bot") {
-      if (!confirmDel(btn.dataset.name || "бота")) return;
-      await OnLead.api("/api/bots/" + btn.dataset.id, { method: "DELETE" });
-      await render();
-      return;
-    }
-    if (act === "refresh-tg-channels") {
-      const res = await OnLead.api("/api/tg/channels/refresh", { method: "POST" });
-      OnLead._flash = res.added ? `Добавлено каналов: ${res.added}` : (res.found ? "Список обновлён, новых каналов нет." : "Telegram не прислал каналы. Сделайте бота админом и напишите в канал, затем обновите снова.");
-      await render();
-      return;
-    }
-    if (act === "add-tg-channel") {
-      const username = prompt("Канал (@name или ссылка)", "@onlead_channel");
-      if (!username) return;
-      await OnLead.api("/api/tg/channels", { method: "POST", body: { username, name: username } });
-      await render();
-      return;
-    }
-    if (act === "edit-tg-channel") {
-      const name = prompt("Название", btn.dataset.name || "");
-      if (name == null) return;
-      const username = prompt("Username", btn.dataset.username || "");
-      if (username == null) return;
-      await OnLead.api("/api/tg/channels/" + btn.dataset.id, { method: "PATCH", body: { name: name.trim(), username: username.trim() } });
-      await render();
-      return;
-    }
-    if (act === "toggle-tg-channel") {
-      await OnLead.api("/api/tg/channels/" + btn.dataset.id, { method: "PATCH", body: { status: btn.dataset.status } });
-      await render();
-      return;
-    }
-    if (act === "del-tg-channel") {
-      if (!confirmDel(btn.dataset.name || "канал")) return;
-      await OnLead.api("/api/tg/channels/" + btn.dataset.id, { method: "DELETE" });
-      await render();
-      return;
-    }
-    if (act === "add-funnel") {
-      return;
-    }
-    if (act === "new-funnel") {
-      const sc = OnLead.tgScenario(btn.dataset.scenario);
-      if (!sc) return;
-      const row = await OnLead.api("/api/tg/funnels", {
-        method: "POST",
-        body: { name: sc.name, scenario: sc.id, kind: sc.kind, sections: sc.sections },
-      });
-      go("/office/telegram/funnels/" + row.id);
-      await render();
-      return;
-    }
-    if (act === "funnel-add-section") {
-      document.getElementById("funnel-sections")?.insertAdjacentHTML("beforeend", funnelSecHtml({ title: "Новый раздел", text: "", buttons: "" }));
-      return;
-    }
-    if (act === "funnel-del-section") {
-      btn.closest(".funnel-sec")?.remove();
-      return;
-    }
-    if (act === "archive-funnel") {
-      await OnLead.api("/api/tg/funnels/" + btn.dataset.id, { method: "PATCH", body: { status: "archive" } });
-      await render();
-      return;
-    }
-    if (act === "edit-funnel") {
-      go("/office/telegram/funnels/" + btn.dataset.id);
-      return;
-    }
-    if (act === "toggle-funnel") {
-      await OnLead.api("/api/tg/funnels/" + btn.dataset.id, { method: "PATCH", body: { status: btn.dataset.status } });
-      await render();
-      return;
-    }
-    if (act === "del-funnel") {
-      if (!confirmDel(btn.dataset.name || "воронку")) return;
-      await OnLead.api("/api/tg/funnels/" + btn.dataset.id, { method: "DELETE" });
-      if (location.hash.includes("/funnels/")) go("/office/telegram/funnels");
-      await render();
-      return;
-    }
-    if (act === "pause-cam") {
-      await OnLead.api("/api/campaigns/" + btn.dataset.id + "/pause", { method: "POST" });
-      await render(); return;
-    }
-    if (act === "vk-tool-toggle") {
-      const slug = btn.dataset.slug;
-      const st = OnLead.load();
-      const list = st.campaigns[slug] || [];
-      const anyRunning = list.some((c) => c.status === "running");
-      const targets = list.filter((c) => (anyRunning ? c.status === "running" : c.status === "paused"));
-      for (const c of targets) {
-        await OnLead.api("/api/campaigns/" + c.id + "/pause", { method: "POST" });
-      }
-      await render();
-      return;
-    }
-    if (act === "vk-tool-run") {
-      const form = document.getElementById("tool-form");
-      if (!form) return alert("Заполните форму запуска ниже");
-      form.requestSubmit();
-      return;
-    }
-    if (act === "edit-cam") {
-      const title = prompt("Название задачи", btn.dataset.title || "");
-      if (title == null) return;
-      await OnLead.api("/api/campaigns/" + btn.dataset.id, { method: "PATCH", body: { title: title.trim() } });
-      await render();
-      return;
-    }
-    if (act === "del-cam") {
-      if (!confirmDel(btn.dataset.name || "задачу")) return;
-      await OnLead.api("/api/campaigns/" + btn.dataset.id, { method: "DELETE" });
-      await render();
-      return;
-    }
-    if (act === "gm-approve" || act === "gm-deny") {
-      await OnLead.api("/api/vk/groups/requests", {
-        method: "POST",
-        body: {
-          action: act === "gm-approve" ? "approve" : "deny",
-          groupId: btn.dataset.gid,
-          userId: btn.dataset.uid,
-          accountId: $("#tool-form [name=accountId]")?.value,
-        },
-      });
-      await loadToolExtras("group-manager-vk");
-      return;
-    }
-    if (act === "vk-chat-reply") {
-      const peerId = btn.dataset.peer;
-      const input = document.getElementById(`chat-reply-${peerId}`);
-      const message = String(input?.value || "").trim();
-      if (!message) return alert("Введите текст ответа");
-      await OnLead.api("/api/vk/chats/reply", {
-        method: "POST",
-        body: {
-          peerId,
-          message,
-          accountId: $("#tool-form [name=accountId]")?.value,
-        },
-      });
-      if (input) input.value = "";
-      OnLead._flash = "Сообщение отправлено";
-      await loadToolExtras("chat-manager-vk");
-      return;
-    }
-    if (act === "confirm-receipt") {
-      await OnLead.api("/api/tg/receipts/" + btn.dataset.id + "/confirm", { method: "POST" });
-      await OnLead.refresh();
-      OnLead._flash = "Оплата подтверждена, клиенту отправлено сообщение";
-      await loadTgReceipts();
-      return;
-    }
-    if (act === "reject-receipt") {
-      const note = prompt("Причина отклонения (необязательно)", "") ?? "";
-      await OnLead.api("/api/tg/receipts/" + btn.dataset.id + "/reject", { method: "POST", body: { note } });
-      await loadTgReceipts();
-      return;
-    }
-  } catch (err) { alert(err.message); }
-}
 
-async function onToolSubmit(e) {
-  e.preventDefault();
-  const slug = e.target.dataset.slug;
-  const state = OnLead.load();
-  if (!OnLead.toolOn(state, slug)) return;
-  const data = Object.fromEntries(new FormData(e.target).entries());
-  const accountId = data.accountId || state.activeAccount;
-  delete data.accountId;
-  const btn = e.target.querySelector("button[type=submit]");
-  const prev = btn?.textContent;
-  if (btn) {
-    btn.disabled = true;
-    if (slug === "image-ai") btn.textContent = "Создаём картинку…";
-  }
-  try {
-    await OnLead.api("/api/campaigns", { method: "POST", body: { slug, accountId, payload: data } });
-    await render();
-  } catch (err) {
-    if (btn) {
-      btn.disabled = false;
-      if (prev) btn.textContent = prev;
-    }
-    alert(err.message);
-  }
-}
 
 function vkAccountQuery() {
   const id = $("#tool-form [name=accountId]")?.value || "";
   return id ? `?accountId=${encodeURIComponent(id)}` : "";
 }
+OnLead.vkAccountQuery = vkAccountQuery;
 
 function isBdayToday(bdate) {
   if (!bdate) return false;
@@ -4012,6 +2607,7 @@ function syncAutopostPreview() {
   }
   box.textContent = `[${when}]${dest ? ` · ${dest}` : ""}\n\n${text}`;
 }
+OnLead.syncAutopostPreview = syncAutopostPreview;
 
 async function loadLandingsMedia() {
   const box = document.getElementById("landings-media-grid");
@@ -4033,6 +2629,7 @@ async function loadLandingsMedia() {
     box.innerHTML = `<div class="card muted">${esc(err.message)}</div>`;
   }
 }
+OnLead.loadLandingsMedia = loadLandingsMedia;
 
 async function onMediaUpload(e) {
   e.preventDefault();
@@ -4072,6 +2669,7 @@ async function loadTgFunnelOlData(id) {
     await render();
   } catch { /* ignore */ }
 }
+OnLead.loadTgFunnelOlData = loadTgFunnelOlData;
 
 async function loadTgReceipts() {
   const box = document.getElementById("tg-receipts-box");
@@ -4098,6 +2696,7 @@ async function loadTgReceipts() {
     box.innerHTML = `<div class="card muted">${esc(err.message)}</div>`;
   }
 }
+OnLead.loadTgReceipts = loadTgReceipts;
 
 async function loadToolExtras(slug) {
   const box = document.getElementById("tool-extra");
@@ -4293,6 +2892,7 @@ async function loadToolExtras(slug) {
     box.innerHTML = `<div class="card muted" style="margin-top:16px">${esc(err.message)}</div>`;
   }
 }
+OnLead.loadToolExtras = loadToolExtras;
 
 async function saveOlLandingEditor() {
   const editor = document.querySelector(".ol-editor");
@@ -4314,6 +2914,7 @@ async function saveOlLandingEditor() {
   OnLead._flash = "Сохранили";
   await OnLead.refresh();
 }
+OnLead.saveOlLandingEditor = saveOlLandingEditor;
 
 async function createLanding(name, template) {
   const tpl = OnLead.landingTemplate(template);
@@ -4350,6 +2951,7 @@ async function createLanding(name, template) {
   go("/office/landings/pages/" + created.id);
   await render();
 }
+OnLead.createLanding = createLanding;
 
 async function onLandingCreate(e) {
   e.preventDefault();
@@ -4537,6 +3139,7 @@ async function onParse(e) {
 function personName(p) {
   return [p.firstName || p.first_name, p.lastName || p.last_name].filter(Boolean).join(" ") || ("id" + p.id);
 }
+OnLead.personName = personName;
 
 async function loadOpenList() {
   const m = route().path.match(/\/lists\/([^/]+)$/);
@@ -4559,6 +3162,7 @@ async function loadOpenList() {
     box.textContent = err.message;
   }
 }
+OnLead.loadOpenList = loadOpenList;
 
 async function saveLeadgenCfg() {
   await OnLead.api("/api/leadgen", {
@@ -4574,6 +3178,7 @@ async function saveLeadgenCfg() {
   const status = $("#lg-status");
   if (status) status.textContent = "Настройки сохранены";
 }
+OnLead.saveLeadgenCfg = saveLeadgenCfg;
 
 function collectedLeadgenGroups() {
   syncLeadgenCheckedFromDom();
@@ -4627,6 +3232,7 @@ function applyLeadgenGroupChecks(check) {
   updateLeadgenGroupCount();
   scheduleLeadgenGroupsSave();
 }
+OnLead.applyLeadgenGroupChecks = applyLeadgenGroupChecks;
 
 function nextLeadgenSaveGen() {
   OnLead._lgSaveGen = (Number(OnLead._lgSaveGen) || 0) + 1;
@@ -4692,6 +3298,7 @@ async function saveLeadgenGroups(refresh = true, gen) {
   if (status) status.textContent = `Сохранено сообществ: ${groups.length}`;
   if (refresh === true) await render();
 }
+OnLead.saveLeadgenGroups = saveLeadgenGroups;
 
 async function loadLeadgenGroups() {
   const status = $("#lg-status");
@@ -4720,6 +3327,7 @@ async function loadLeadgenGroups() {
     else alert(err.message);
   }
 }
+OnLead.loadLeadgenGroups = loadLeadgenGroups;
 
 async function onLeadgenAddPhrase(e) {
   e.preventDefault();
@@ -4747,12 +3355,14 @@ async function removeLeadgenPhrase(id) {
   await OnLead.api("/api/leadgen/phrases", { method: "PUT", body: { phrases } });
   await render();
 }
+OnLead.removeLeadgenPhrase = removeLeadgenPhrase;
 
 async function removeLeadgenExclude(text) {
   const excludePhrases = (OnLead.load().leadgen?.excludePhrases || []).filter((p) => p !== text);
   await OnLead.api("/api/leadgen", { method: "PATCH", body: { excludePhrases } });
   await render();
 }
+OnLead.removeLeadgenExclude = removeLeadgenExclude;
 
 async function addLeadgenNiche(id) {
   const niche = OnLead.NICHES.find((n) => n.id === id);
@@ -4766,6 +3376,7 @@ async function addLeadgenNiche(id) {
   await OnLead.api("/api/leadgen/phrases", { method: "PUT", body: { phrases } });
   await render();
 }
+OnLead.addLeadgenNiche = addLeadgenNiche;
 
 async function startLeadgenScan() {
   const status = $("#lg-status");
@@ -4782,6 +3393,7 @@ async function startLeadgenScan() {
     else alert(err.message);
   }
 }
+OnLead.startLeadgenScan = startLeadgenScan;
 
 function pollLeadgenScan() {
   clearInterval(OnLead._leadgenPoll);

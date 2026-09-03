@@ -38,6 +38,7 @@ if (method === 'GET' && path === '/api/media/library') {
       .filter((c) => c.userId === u.id && c.slug === 'image-ai')
       .flatMap((c) => (c.stats?.images || []).map((img) => ({ ...img, source: 'ai' })));
     send(res, 200, { uploads, ai });
+  return true;
   }
 
   if (method === 'POST' && path === '/api/media/upload') {
@@ -91,11 +92,13 @@ if (method === 'GET' && path === '/api/media/library') {
     const body = await readBody(req);
     const post = mutate((db) => createPost(db, u.id, body));
     send(res, 201, { post: publicPost(post) });
+  return true;
   }
 
   if (method === 'GET' && path === '/api/posts/history') {
     const u = requireUser(req, res); if (!u) return true;
     send(res, 200, { logs: listPubLogs(load(), u.id, 100) });
+  return true;
   }
 
   if (method === 'GET' && path.match(/^\/api\/posts\/[^/]+$/) && !path.endsWith('/history')) {
@@ -129,6 +132,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const from = Number(url.searchParams.get('from') || Date.now() - 86400000 * 35);
     const to = Number(url.searchParams.get('to') || Date.now() + 86400000 * 35);
     send(res, 200, postsCalendar(load(), u.id, from, to));
+  return true;
   }
 
   if (method === 'POST' && path.match(/^\/api\/posts\/[^/]+\/submit-approval$/)) {
@@ -206,6 +210,7 @@ if (method === 'GET' && path === '/api/media/library') {
   if (method === 'GET' && path === '/api/content-studio/niches') {
     const u = requireUser(req, res); if (!u) return true;
     send(res, 200, { niches: CONTENT_NICHES });
+  return true;
   }
 
   if (method === 'POST' && path === '/api/content-studio/plan') {
@@ -228,6 +233,7 @@ if (method === 'GET' && path === '/api/media/library') {
       return created;
     });
     send(res, 201, { posts: posts.map(publicPost), count: posts.length });
+  return true;
   }
 
   if (method === 'GET' && path === '/api/rss/sources') {
@@ -236,6 +242,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const counts = rssSourceItemCounts(db, u.id);
     const sources = listRssSources(db, u.id).map((s) => ({ ...s, itemCount: counts[s.id] || 0 }));
     send(res, 200, { sources });
+  return true;
   }
 
   if (method === 'POST' && path === '/api/rss/sources') {
@@ -293,6 +300,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const status = url.searchParams.get('status') || null;
     const take = Number(url.searchParams.get('take') || 100);
     send(res, 200, { items: listRssItems(db, u.id, id, { status, take }) });
+  return true;
   }
 
   if (method === 'POST' && path === '/api/rss/import') {
@@ -335,6 +343,7 @@ if (method === 'GET' && path === '/api/media/library') {
       ownerLabel: body.ownerLabel,
     }));
     send(res, 201, { created, count: created.length });
+  return true;
   }
 
   if (method === 'GET' && path === '/api/repost/sources') {
@@ -342,6 +351,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const db = load();
     const counts = repostSourceItemCounts(db, u.id);
     send(res, 200, { sources: listRepostSources(db, u.id).map((s) => ({ ...s, itemCount: counts[s.id] || 0 })) });
+  return true;
   }
 
   if (method === 'POST' && path === '/api/repost/sources') {
@@ -400,6 +410,7 @@ if (method === 'GET' && path === '/api/media/library') {
     if (!getRepostSource(db, u.id, id)) send(res, 404, { error: 'РСЃС‚РѕС‡РЅРёРє РЅРµ РЅР°Р№РґРµРЅ' });
     const status = url.searchParams.get('status') || null;
     send(res, 200, { items: listRepostItems(db, u.id, id, { status, take: 100 }) });
+  return true;
   }
 
   if (method === 'POST' && path === '/api/repost/import') {

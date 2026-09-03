@@ -30,9 +30,11 @@ test('public health exposes SPA-safe flags', () => {
 
 test('index.mjs wires route dispatcher and snapshot module', () => {
   const src = readFileSync(join(ROOT, 'index.mjs'), 'utf8');
+  const dispatch = readFileSync(join(ROOT, 'routes', 'dispatch.mjs'), 'utf8');
   assert.match(src, /dispatchRoutes/);
-  assert.match(src, /from '\.\/snapshot\.mjs'/);
   assert.match(src, /from '\.\/routes\/dispatch\.mjs'/);
+  assert.match(dispatch, /admin-routes/);
+  assert.match(dispatch, /headersSent/);
 });
 
 test('package test script includes route and api smoke suites', () => {
