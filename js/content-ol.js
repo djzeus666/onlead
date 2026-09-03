@@ -22,6 +22,7 @@ OnLead.contentOlNav = function contentOlNav(path) {
   const items = [
     { href: "#/office/content", label: "Доска" },
     { href: "#/office/content?view=calendar", label: "Календарь" },
+    { href: "#/office/content?view=watermarks", label: "Водяные знаки" },
     { href: "#/office/compose", label: "Редактор" },
     { href: "#/office/content-studio", label: "AI-план" },
     { href: "#/office/ai-images", label: "AI-картинки" },
@@ -87,12 +88,15 @@ OnLead.contentOlPage = function contentOlPage(state, path) {
       <b>${d}</b>${n ? `<span class="cnt-cal-n">${n}</span>` : ""}</a>`);
   }
   const monthLabel = first.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+  const weekHdr = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((d) => `<div class="cnt-cal-wd">${d}</div>`).join("");
   const calendar = `<div class="cnt-cal">
     <div class="toolbar cnt-cal-head">
       <button type="button" class="btn btn-ghost btn-sm" data-act="cal-prev">←</button>
       <b>${esc(monthLabel)}</b>
       <button type="button" class="btn btn-ghost btn-sm" data-act="cal-next">→</button>
+      <a class="btn btn-ghost btn-sm" href="#/office/content?view=day&date=${new Date().toISOString().slice(0, 10)}">Сегодня</a>
     </div>
+    <div class="cnt-cal-week">${weekHdr}</div>
     <div class="cnt-cal-grid">${cells.join("")}</div>
   </div>`;
 
@@ -106,10 +110,26 @@ OnLead.contentOlPage = function contentOlPage(state, path) {
       <a class="btn btn-ghost btn-sm" href="#/office/content?view=calendar">← Календарь</a></div>`;
   })() : "";
 
+  const watermarksView = view === "watermarks" ? (() => {
+    const c = state.cabinet || {};
+    const rows = (c.watermarks || []).map((w) => `<div class="cab-list-row"><b>${esc(w.name)}</b>
+      <p class="muted">${esc(String(w.text || "").slice(0, 160))}</p>
+      <button type="button" class="btn btn-ghost btn-sm" data-act="cab-del-item" data-kind="watermarks" data-id="${esc(w.id)}">×</button></div>`).join("");
+    return `<div class="card"><b>Водяные знаки</b>
+      <p class="muted" style="font-size:12px">Текст добавляется к посту при публикации — включите в редакторе.</p>
+      ${rows || `<p class="muted">Пока пусто</p>`}
+      <form id="cnt-add-wm" class="cab-add" style="margin-top:12px">
+        <input name="name" placeholder="Название" required>
+        <textarea name="text" rows="2" placeholder="Текст знака" required></textarea>
+        <button type="submit" class="btn btn-primary btn-sm">Добавить</button>
+      </form></div>`;
+  })() : "";
+
   let body = board;
   if (view === "list") body = list;
   else if (view === "calendar") body = calendar;
   else if (view === "day") body = dayView;
+  else if (view === "watermarks") body = watermarksView;
 
   return `<div class="cnt-ol">
     ${nav}
@@ -128,6 +148,7 @@ OnLead.contentOlPage = function contentOlPage(state, path) {
       <a class="btn btn-sm ${view === "board" || (!view || view === "board") && !trash ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=board">Доска</a>
       <a class="btn btn-sm ${view === "list" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=list">Список</a>
       <a class="btn btn-sm ${view === "calendar" || view === "day" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=calendar">Календарь</a>
+      <a class="btn btn-sm ${view === "watermarks" ? "btn-ink" : "btn-ghost"}" href="#/office/content?view=watermarks">Водяные знаки</a>
       <a class="btn btn-sm ${trash ? "btn-ink" : "btn-ghost"}" href="#/office/content?trash=1">Корзина · ${counts.trash || 0}</a>
     </div>
     ${body}
@@ -273,5 +294,14 @@ OnLead.bindContentOl = function bindContentOl() {
     OnLead._flash = "Файл загружен";
     if (input) input.value = "";
     await OnLead.loadContentMediaGrid();
+  });
+  document.getElementById("cnt-add-wm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const c = OnLead.load().cabinet || {};
+    const list = [...(c.watermarks || []), { id: "wm-" + Date.now(), name: fd.get("name"), text: fd.get("text") }];
+    await OnLead.api("/api/cabinet/settings", { method: "PATCH", body: { watermarks: list } });
+    OnLead._flash = "Водяной знак добавлен";
+    await render();
   });
 };

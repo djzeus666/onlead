@@ -30,7 +30,9 @@ test('index.mjs wires dispatch; landings in server/routes', () => {
   const authSrc = readFileSync(join(ROOT, 'routes', 'auth.mjs'), 'utf8');
   const healthSrc = readFileSync(join(ROOT, 'routes', 'health.mjs'), 'utf8');
   const landingsSrc = readFileSync(join(ROOT, 'routes', 'landings-routes.mjs'), 'utf8');
+  const dispatchSrc = readFileSync(join(ROOT, 'routes', 'dispatch.mjs'), 'utf8');
   assert.match(indexSrc, /dispatchRoutes/);
+  assert.match(dispatchSrc, /vk-routes/);
   assert.match(authSrc, /enforceRate\(req, res, 'verify'\)/);
   assert.match(healthSrc, /publicHealthPayload\(healthPayload\(\)\)/);
   assert.match(landingsSrc, /findOwnedLanding/);

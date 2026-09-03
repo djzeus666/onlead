@@ -161,6 +161,8 @@
 
 .cnt-cal { margin-top: 8px; }
 .cnt-cal-head { justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.cnt-cal-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 4px; }
+.cnt-cal-wd { text-align: center; font-size: 11px; color: var(--muted); font-weight: 600; }
 .cnt-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 
 .cnt-cal-cell {
