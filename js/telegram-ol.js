@@ -229,3 +229,237 @@ OnLead.tgSettingsFromForm = function tgSettingsFromForm(form) {
     sections,
   };
 };
+
+/* --- classic telegram pages (tariffs/bots/channels/funnels list) --- */
+OnLead.fmtUntil = function fmtUntil(ts) {
+  if (!ts || ts < Date.now()) return "";
+  return new Date(ts).toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+}
+
+OnLead.liveTg = function liveTg(state) {
+  const p = state.tgPlan || {};
+  if (p.until && p.until > Date.now()) return p;
+  if (state.user?.trialUntil && state.user.trialUntil > Date.now()) {
+    return { id: "trial", lite: 1, pro: 0, until: state.user.trialUntil };
+  }
+  return { id: null, lite: 0, pro: 0, until: 0 };
+}
+
+OnLead.funnelSecHtml = function funnelSecHtml(s = {}) {
+  return `<div class="funnel-sec">
+    <div class="h-row" style="margin:0 0 8px"><b>Раздел</b>
+      <button type="button" class="btn btn-ghost btn-sm" data-act="funnel-del-section">Убрать</button></div>
+    <label class="field"><span>Заголовок</span><input name="title" value="${OnLead.esc(s.title || "")}"></label>
+    <label class="field"><span>Текст сообщения</span><textarea name="text">${OnLead.esc(s.text || "")}</textarea></label>
+    <label class="field"><span>Кнопки через запятую</span><input name="buttons" value="${OnLead.esc(s.buttons || "")}"></label>
+  </div>`;
+}
+
+OnLead.telegramTariffs = function telegramTariffs(state, nav) {
+  const months = Math.max(1, Number(OnLead.hashParams().get("m") || 1));
+  const plan = OnLead.liveTg(state);
+  const used = state.tgSlots || { lite: 0, pro: 0 };
+  const catalog = OnLead.TG_PLANS || [];
+  const periods = OnLead.TG_PERIODS || [];
+  const until = OnLead.fmtUntil(plan.until);
+  const live = !!(state.settings?.telegramLive || OnLead.health?.telegramLive);
+  const trialBtn = (!live || state.tgTrialUsed)
+    ? ""
+    : `<button type="button" class="btn btn-ghost" data-act="tg-trial">Сначала попробовать 3 дня бесплатно</button>`;
+  const buy = (p, price) => live
+    ? `<button type="button" class="btn btn-primary btn-block" style="margin-top:12px" data-act="buy-tg" data-plan="${OnLead.esc(p.id)}" data-m="${months}" data-amount="${price}">Подключить</button>`
+    : `<button type="button" class="btn btn-ghost btn-block" style="margin-top:12px" disabled>Оплата закрыта</button>`;
+  return `${nav}
+    ${live
+      ? `<div class="notice"><div>Бот отвечает в Telegram по сохранённой воронке: /start и кнопки. Подключите бота, включите воронку, напишите боту.</div></div>`
+      : `<div class="notice"><div>Рассылка из кабинета ещё не запущена.</div></div>`}
+    <div class="h-row">
+      <div>
+        <h1>Тарифы Telegram</h1>
+        <p class="muted" style="margin:0">${plan.lite || plan.pro
+          ? `Сейчас: ${plan.id === "trial" ? "пробный" : OnLead.esc(OnLead.tgPlan(plan.id)?.name || plan.id)} · Lite ${used.lite}/${plan.lite} · Pro ${used.pro}/${plan.pro}${until ? " · до " + until : ""}`
+          : "Слот — одна воронка. Подключите тариф или возьмите 3 дня."}</p>
+      </div>
+      <div class="toolbar" style="margin:0">
+        <a class="btn btn-ink btn-sm" href="#/office/telegram/funnels">Открыть конструктор</a>
+        <a class="btn btn-ghost btn-sm" href="#/office/academy">Обучение</a>
+      </div>
+    </div>
+    <div class="toolbar"><div class="seg">${periods.map((p) => `
+      <a href="#/office/telegram/tariffs?m=${p.id}" class="${months === p.id ? "on" : ""}">${OnLead.esc(p.label)}</a>`).join("")}</div></div>
+    <div class="grid-3">${catalog.map((p) => {
+      const price = OnLead.tgPrice(p, months);
+      return `<div class="card price-card tg-plan ${p.hit ? "hit" : ""}">
+        ${p.hit ? `<span class="chip">выгодно</span>` : ""}
+        <h3>${OnLead.esc(p.name)}</h3>
+        <div class="amount">${price.toLocaleString("ru-RU")} ₽</div>
+        <p>${OnLead.esc(p.hint)}</p>
+        <p style="margin-top:8px">${OnLead.esc(p.blurb)}</p>
+        <p class="muted" style="margin-top:8px">Lite ${p.lite} · Pro ${p.pro}</p>
+        ${buy(p, price)}
+      </div>`;
+    }).join("")}
+      <div class="card">
+        <h3>Конструктор</h3>
+        <p>Тексты и кнопки сохраняются. Включённая воронка отвечает в Telegram на /start и кнопки.</p>
+        ${trialBtn}
+      </div>
+    </div>
+    <p class="muted" style="margin-top:16px">Оплата картой / СБП через ЮKassa или со счёта кабинета. После подключения бот отвечает на /start текстами воронки.</p>`;
+}
+
+OnLead.telegramBots = function telegramBots(state, nav) {
+  const bots = state.bots || [];
+  return `${nav}<div class="h-row"><h1>Боты</h1></div>
+    <p class="muted" style="margin-top:0">Подключение бесплатное. Создайте бота в <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a>, скопируйте токен и вставьте сюда. Сервис поставит webhook и начнёт отвечать на /start.</p>
+    <form id="bot-form" class="card" style="display:grid;gap:10px;max-width:560px">
+      <label class="field"><span>Токен</span><input name="token" placeholder="123456789:AAH..." required autocomplete="off"></label>
+      <button class="btn btn-primary" type="submit">Подключить</button>
+      ${OnLead.health?.mocksAllowed ? `<p class="muted" style="font-size:12px;margin:0">Для проверки без Telegram: <code>mock:demo</code></p>` : ""}
+    </form>
+    ${bots.length ? bots.map((b) => `<div class="list-item"><div><b>${OnLead.esc(b.name)}</b>
+      <div class="muted">${OnLead.esc(b.username)} · ${b.tokenMask ? OnLead.esc(b.tokenMask) + " · " : ""}${b.status === "on" ? "включён" : "выключен"}</div>
+      ${b.tokenBroken ? `<div class="muted" style="color:var(--danger)">Токен недействителен — бот не отвечает. Нажмите «Заменить токен» и вставьте новый из @BotFather.</div>` : ""}</div>
+      <div class="match-actions">
+        <button type="button" class="btn ${b.tokenBroken ? "btn-primary" : "btn-ghost"} btn-sm" data-act="retoken-bot" data-id="${OnLead.esc(b.id)}">Заменить токен</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="edit-bot" data-id="${OnLead.esc(b.id)}" data-name="${OnLead.esc(b.name)}">Изменить</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="toggle-bot" data-id="${OnLead.esc(b.id)}" data-status="${b.status === "on" ? "off" : "on"}">${b.status === "on" ? "Отключить" : "Включить"}</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="del-bot" data-id="${OnLead.esc(b.id)}" data-name="${OnLead.esc(b.name)}">Удалить</button>
+      </div></div>`).join("") : `<div class="card muted" style="margin-top:12px">Ботов пока нет.</div>`}`;
+}
+
+OnLead.telegramChannels = function telegramChannels(state, nav) {
+  const channels = state.tgChannels || [];
+  const access = state.tgChannelAccess || [];
+  const plan = OnLead.liveTg(state);
+  const active = access.filter((a) => a.status === "active" && Number(a.until) > Date.now());
+  const history = access.filter((a) => a.status !== "active" || Number(a.until) <= Date.now()).slice(0, 20);
+  const accessRow = (a) => {
+    const label = a.tgUsername ? `@${OnLead.esc(a.tgUsername.replace(/^@/, ""))}` : `id ${OnLead.esc(a.tgUserId)}`;
+    const st = a.status === "active" && Number(a.until) > Date.now()
+      ? `до ${OnLead.fmtWhen(a.until)}`
+      : a.status === "kicked"
+        ? "исключён"
+        : a.status === "error"
+          ? `ошибка${a.note ? `: ${OnLead.esc(a.note)}` : ""}`
+          : "истёк";
+    return `<div class="list-item" style="margin-top:8px"><div><b>${label}</b>
+      <div class="muted">${OnLead.esc(a.tariffDays ? `${a.tariffDays} дн.` : "Pro")} · ${st}</div></div>
+      <span class="chip">${a.status === "active" && Number(a.until) > Date.now() ? "активен" : OnLead.esc(a.status || "—")}</span></div>`;
+  };
+  return `${nav}<div class="h-row"><h1>Каналы</h1>
+      <button type="button" class="btn btn-primary" data-act="refresh-tg-channels">Обновить список</button></div>
+    <p class="muted" style="margin-top:0">Закрытый канал нужен для воронок Pro. Добавьте бота администратором с правом приглашать, затем укажите @username — webhook не читает getUpdates.</p>
+    ${plan.pro ? "" : `<div class="notice"><div>Pro-слот нужен, чтобы выдавать доступ в канал по сроку. Lite-воронки работают без канала.</div>
+      <a class="btn btn-ink btn-sm" href="#/office/telegram/tariffs">Тарифы</a></div>`}
+    ${plan.pro ? `<div class="card" style="margin-bottom:16px">
+      <h3 style="margin:0 0 8px">Доступ по подписке Pro</h3>
+      <p class="muted" style="margin:0 0 10px">После оплаты в воронке пользователь получает invite-link; по истечении срока бот исключает его из канала.</p>
+      ${active.length ? `<div><b>Активные · ${active.length}</b>${active.slice(0, 15).map(accessRow).join("")}</div>` : `<p class="muted">Активных подписчиков канала пока нет.</p>`}
+      ${history.length ? `<details style="margin-top:12px"><summary class="muted">История · ${history.length}</summary>${history.map(accessRow).join("")}</details>` : ""}
+    </div>` : ""}
+    <form id="tg-channel-form" class="lg-add" style="margin-bottom:14px">
+      <input name="username" placeholder="@channel или ссылка t.me/…" required>
+      <button class="btn btn-ghost" type="submit">Добавить по username</button>
+    </form>
+    ${channels.length ? channels.map((c) => `<div class="list-item"><div><b>${OnLead.esc(c.name)}</b>
+      <div class="muted">${OnLead.esc(c.username || c.chatId || "—")} · ${c.status === "on" ? "подключён" : "выключен"}</div></div>
+      <div class="match-actions">
+        <button type="button" class="btn btn-ghost btn-sm" data-act="edit-tg-channel" data-id="${OnLead.esc(c.id)}" data-name="${OnLead.esc(c.name)}" data-username="${OnLead.esc(c.username || "")}">Изменить</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="toggle-tg-channel" data-id="${OnLead.esc(c.id)}" data-status="${c.status === "on" ? "off" : "on"}">${c.status === "on" ? "Отключить" : "Включить"}</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="del-tg-channel" data-id="${OnLead.esc(c.id)}" data-name="${OnLead.esc(c.name)}">Удалить</button>
+      </div></div>`).join("") : `<div class="card muted">Каналов нет. Сделайте бота админом и обновите список — либо укажите @username, если бот уже в канале.</div>`}`;
+}
+
+OnLead.telegramFunnels = function telegramFunnels(state, nav) {
+  const funnels = state.tgFunnels || [];
+  const plan = OnLead.liveTg(state);
+  const used = state.tgSlots || { lite: 0, pro: 0 };
+  const active = funnels.filter((f) => f.status !== "archive");
+  const archived = funnels.filter((f) => f.status === "archive");
+  const scenarios = OnLead.TG_SCENARIOS || [];
+  const row = (f) => {
+    const sc = OnLead.tgScenario(f.scenario);
+    return `<div class="list-item"><div><b>${OnLead.esc(f.name)}</b>
+      <div class="muted">${f.kind === "pro" ? "Pro" : "Lite"}${sc ? " · " + OnLead.esc(sc.name) : ""} · ${f.status === "on" ? "включена" : f.status === "archive" ? "архив" : "выключена"} · ${(f.sections || f.steps || []).length} разделов</div></div>
+      <div class="match-actions">
+        <a class="btn btn-primary btn-sm" href="#/office/telegram/funnels/${OnLead.esc(f.id)}">Конструктор</a>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="toggle-funnel" data-id="${OnLead.esc(f.id)}" data-status="${f.status === "on" ? "off" : "on"}">${f.status === "on" ? "Отключить" : "Включить"}</button>
+        ${f.status === "archive"
+          ? `<button type="button" class="btn btn-ghost btn-sm" data-act="toggle-funnel" data-id="${OnLead.esc(f.id)}" data-status="on">Из архива</button>`
+          : `<button type="button" class="btn btn-ghost btn-sm" data-act="archive-funnel" data-id="${OnLead.esc(f.id)}">В архив</button>`}
+        <button type="button" class="btn btn-ghost btn-sm" data-act="del-funnel" data-id="${OnLead.esc(f.id)}" data-name="${OnLead.esc(f.name)}">Удалить</button>
+      </div></div>`;
+  };
+  return `${nav}
+    <div class="h-row">
+      <div><h1>Воронки</h1>
+        <p class="muted" style="margin:0">Слоты: Lite ${used.lite}/${plan.lite || 0} · Pro ${used.pro}/${plan.pro || 0}. Архив освобождает слот.</p></div>
+    </div>
+    <h3>Сценарии</h3>
+    <div class="grid-3">${scenarios.map((s) => `
+      <div class="card">
+        <span class="chip">${s.kind === "pro" ? "Pro" : "Lite"}</span>
+        <h3>${OnLead.esc(s.name)}</h3>
+        <p>${OnLead.esc(s.blurb)}</p>
+        <button type="button" class="btn btn-primary" style="margin-top:12px" data-act="new-funnel" data-scenario="${OnLead.esc(s.id)}">Создать воронку</button>
+      </div>`).join("")}</div>
+    <h3 style="margin-top:22px">Мои воронки</h3>
+    ${active.length ? active.map(row).join("") : `<div class="card muted">Воронок нет — выберите сценарий.</div>`}
+    ${archived.length ? `<h3 style="margin-top:22px">Архив</h3>${archived.map(row).join("")}` : ""}
+    <div id="tg-receipts-box" style="margin-top:22px"></div>`;
+}
+
+OnLead.telegramFunnelEditor = function telegramFunnelEditor(id, state, nav) {
+  const f = (state.tgFunnels || []).find((x) => x.id === id);
+  if (!f) return `${nav}<div class="card">Воронка не найдена. <a href="#/office/telegram/funnels">К списку</a></div>`;
+  const bots = state.bots || [];
+  const sections = (f.sections && f.sections.length) ? f.sections : (f.steps || []).map((t) => ({ title: t, text: "", buttons: "" }));
+  const sc = OnLead.tgScenario(f.scenario);
+  return `${nav}
+    <div class="h-row"><h1>${OnLead.esc(f.name)}</h1>
+      <div class="toolbar" style="margin:0">
+        <a class="btn btn-ghost btn-sm" href="#/office/telegram/funnels">К списку</a>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="toggle-funnel" data-id="${OnLead.esc(f.id)}" data-status="${f.status === "on" ? "off" : "on"}">${f.status === "on" ? "Отключить" : "Включить"}</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="archive-funnel" data-id="${OnLead.esc(f.id)}">В архив</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="del-funnel" data-id="${OnLead.esc(f.id)}" data-name="${OnLead.esc(f.name)}">Удалить</button>
+      </div>
+    </div>
+    <p class="muted">${f.kind === "pro" ? "Pro" : "Lite"}${sc ? " · " + OnLead.esc(sc.name) : ""}. Включённая воронка отвечает в Telegram: /start и кнопки разделов.</p>
+    <form id="funnel-edit-form" class="card" data-id="${OnLead.esc(f.id)}" style="max-width:720px">
+      <label class="field"><span>Название</span><input name="name" value="${OnLead.esc(f.name)}" required></label>
+      <label class="field"><span>Продукт</span><input name="product" value="${OnLead.esc(f.product || "")}" placeholder="Название оффера"></label>
+      <label class="field"><span>Цена</span><input name="price" value="${OnLead.esc(f.price || "")}" placeholder="4 900 ₽"></label>
+      <label class="field"><span>Бот</span>
+        <select name="botId">
+          <option value="">Не выбран</option>
+          ${bots.map((b) => `<option value="${OnLead.esc(b.id)}" ${f.botId === b.id ? "selected" : ""}>${OnLead.esc(b.name)} ${OnLead.esc(b.username || "")}</option>`).join("")}
+        </select>
+      </label>
+      <div id="funnel-sections">${sections.map((s) => OnLead.funnelSecHtml(s)).join("")}</div>
+      <div class="toolbar">
+        <button type="button" class="btn btn-ghost" data-act="funnel-add-section">Добавить раздел</button>
+        <button class="btn btn-primary" type="submit">Сохранить</button>
+      </div>
+    </form>`;
+}
+
+OnLead.telegram = function telegram(path, state) {
+  const navPath = path === "/office/telegram" ? "/office/telegram/tariffs" : path;
+  const nav = OnLead.sectionNav("telegram", navPath);
+  const funnelMatch = path.match(/^\/office\/telegram\/funnels\/([^/]+)$/);
+  if (funnelMatch) {
+    return OnLead.telegramFunnelOlEditor
+      ? OnLead.telegramFunnelOlEditor(funnelMatch[1], state, nav)
+      : OnLead.telegramFunnelEditor(funnelMatch[1], state, nav);
+  }
+  if (path.endsWith("/lead-bots")) {
+    return OnLead.telegramLeadBotsPage
+      ? OnLead.telegramLeadBotsPage(state, nav)
+      : `<div class="card muted">TG-боты недоступны</div>`;
+  }
+  if (path.endsWith("/bots")) return OnLead.telegramBots(state, nav);
+  if (path.endsWith("/channels")) return OnLead.telegramChannels(state, nav);
+  if (path.endsWith("/funnels")) return OnLead.telegramFunnels(state, nav);
+  return OnLead.telegramTariffs(state, nav);
+}

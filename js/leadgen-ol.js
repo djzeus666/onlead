@@ -270,3 +270,89 @@ OnLead.bindLeadgenOl = function bindLeadgenOl() {
     if (e.target.id === "lg-groups-modal") e.target.setAttribute("hidden", "");
   });
 };
+
+/* --- group-check helpers --- */
+OnLead.fmtLeadgenTime = function fmtLeadgenTime(ts) {
+  if (!ts) return "";
+  const d = typeof ts === "number" ? new Date(ts) : new Date(ts);
+  if (Number.isNaN(d.getTime())) return String(ts).slice(0, 16).replace("T", " ");
+  return d.toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+OnLead.highlightLeadgenText = function highlightLeadgenText(text, phrase) {
+  const source = String(text || "");
+  const needle = String(phrase || "").trim();
+  if (!source) return "";
+  if (!needle) return OnLead.esc(source);
+  const lower = source.toLowerCase();
+  const n = needle.toLowerCase();
+  let out = "";
+  let from = 0;
+  let idx = lower.indexOf(n, from);
+  while (idx !== -1) {
+    out += OnLead.esc(source.slice(from, idx));
+    out += `<mark class="lg-hit">${OnLead.esc(source.slice(idx, idx + needle.length))}</mark>`;
+    from = idx + needle.length;
+    idx = lower.indexOf(n, from);
+  }
+  return out + OnLead.esc(source.slice(from));
+}
+
+OnLead.vkGroupHref = function vkGroupHref(g) {
+  const sn = g.screenName || g.screen_name;
+  if (sn) return "https://vk.com/" + sn;
+  const id = String(g.id || g.externalGroupId || "").replace(/^-/, "");
+  return id ? "https://vk.com/club" + id : "";
+}
+
+OnLead.lgNormId = function lgNormId(v) {
+  return String(v || "").replace(/^-/, "");
+}
+
+OnLead.leadgenCheckedSet = function leadgenCheckedSet(state) {
+  if (OnLead._lgChecked instanceof Set) return OnLead._lgChecked;
+  const saved = (state || OnLead.load()).leadgen?.groups || [];
+  OnLead._lgChecked = new Set(saved.map((g) => OnLead.lgNormId(g.externalGroupId || g.id)).filter(Boolean));
+  return OnLead._lgChecked;
+}
+
+OnLead.syncLeadgenCheckedFromDom = function syncLeadgenCheckedFromDom() {
+  const set = OnLead.leadgenCheckedSet();
+  document.querySelectorAll("#lg-group-list input[data-gid]").forEach((el) => {
+    const id = OnLead.lgNormId(el.dataset.gid);
+    if (!id) return;
+    if (el.checked) set.add(id);
+    else set.delete(id);
+  });
+}
+
+OnLead.leadgenGroupRowHtml = function leadgenGroupRowHtml(g, checked) {
+  const href = OnLead.vkGroupHref(g);
+  const id = OnLead.lgNormId(g.id || g.externalGroupId);
+  return `<div class="lg-check" data-gname="${OnLead.esc(g.name)}">
+    <label><input type="checkbox" ${checked ? "checked" : ""} data-gid="${OnLead.esc(id)}" data-gname="${OnLead.esc(g.name)}" data-gsn="${OnLead.esc(g.screenName || "")}"> <span>${OnLead.esc(g.name)}</span></label>
+    ${href ? `<a href="${OnLead.esc(href)}" target="_blank" rel="noopener">VK</a>` : ""}
+  </div>`;
+}
+
+OnLead.leadgenGroupRows = function leadgenGroupRows(state) {
+  const selected = OnLead.leadgenCheckedSet(state);
+  const loaded = OnLead._lgLoadedGroups;
+  if (loaded?.length) {
+    return loaded.map((g) => {
+      const id = OnLead.lgNormId(g.id);
+      return { id, name: g.name, screenName: g.screenName || "", checked: selected.has(id) };
+    });
+  }
+  return (state.leadgen?.groups || []).map((g) => ({
+    id: OnLead.lgNormId(g.externalGroupId),
+    name: g.name,
+    screenName: g.screenName || "",
+    checked: true,
+  }));
+}
+
+OnLead.lgFilterBtn = function lgFilterBtn(key, val, label, current) {
+  const on = (current || "") === val ? "on" : "";
+  return `<button type="button" class="btn btn-ghost btn-sm ${on}" data-act="lg-filter" data-key="${OnLead.esc(key)}" data-val="${OnLead.esc(val)}">${label}</button>`;
+}
