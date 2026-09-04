@@ -124,12 +124,13 @@ export function applyQuote(d, userId, quote, { paymentId } = {}) {
     const from = Math.max(Date.now(), Number(x.enabledTools[quote.slug] || 0));
     x.enabledTools[quote.slug] = from + extra;
   } else if (quote.kind === 'tg-plan') {
+    const plan = TG_PLANS[String(quote.tgPlan || '')] || {};
     const extra = Number(quote.months || 1) * 30 * 86400000;
-    const from = Math.max(Date.now(), Number(x.tgPlan?.until || 0));
+    const from = Math.max(Date.now(), Number(x.tgPlan?.until || 0) || 0);
     x.tgPlan = {
       id: quote.tgPlan,
-      lite: Number(quote.lite || 0),
-      pro: Number(quote.pro || 0),
+      lite: Number(quote.lite ?? plan.lite ?? 0),
+      pro: Number(quote.pro ?? plan.pro ?? 0),
       until: from + extra,
     };
   }
@@ -153,7 +154,7 @@ export function applyQuote(d, userId, quote, { paymentId } = {}) {
 
 function quoteFromRow(row, meta = {}) {
   if (row?.kind) {
-    return {
+    const base = {
       kind: row.kind,
       packageId: row.packageId,
       tgPlan: row.tgPlan,
@@ -161,12 +162,26 @@ function quoteFromRow(row, meta = {}) {
       months: row.months,
       amount: row.amount,
       title: row.title,
+      lite: row.lite,
+      pro: row.pro,
     };
+    // Older pending rows / webhook path may omit lite/pro — refill from catalog.
+    if (base.kind === 'tg-plan' && base.tgPlan && (base.lite == null || base.pro == null
+      || (!(Number(base.lite) || Number(base.pro)) && TG_PLANS[base.tgPlan]))) {
+      const plan = TG_PLANS[String(base.tgPlan)];
+      if (plan) {
+        base.lite = plan.lite;
+        base.pro = plan.pro;
+        if (!base.title) base.title = `${plan.title} · ${Number(base.months || 1)} мес`;
+      }
+    }
+    return base;
   }
   return quoteCheckout({
     kind: meta.kind,
     packageId: meta.packageId || undefined,
     slug: meta.slug || undefined,
+    tgPlan: meta.tgPlan || undefined,
     months: meta.months,
     amount: meta.amount,
   });
@@ -448,11 +463,25 @@ export async function confirmUserPending(userId) {
   if (!pending.length) return { ok: true, applied: false, reason: 'no pending payment' };
   let last = { ok: true, applied: false };
   let appliedAny = false;
+  let appliedTitle = '';
+  let appliedKind = '';
   for (const row of pending.slice(0, 15)) {
     last = await applySucceededPayment(row.id, userId);
-    if (last.applied) appliedAny = true;
+    if (last.applied) {
+      appliedAny = true;
+      appliedTitle = row.title || appliedTitle;
+      appliedKind = row.kind || appliedKind;
+    }
   }
-  if (appliedAny) return { ...last, applied: true, status: 'succeeded' };
+  if (appliedAny) {
+    return {
+      ...last,
+      applied: true,
+      status: 'succeeded',
+      kind: appliedKind,
+      title: appliedTitle,
+    };
+  }
   return last;
 }
 

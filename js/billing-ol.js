@@ -85,6 +85,31 @@ OnLead.billingOlPage = function billingOlPage(state) {
     </div>
   </div>`;
 
+  const tgPlan = OnLead.liveTg ? OnLead.liveTg(state) : (state.tgPlan || {});
+  const tgUntil = OnLead.fmtUntil ? OnLead.fmtUntil(tgPlan.until) : "";
+  const tgName = tgPlan.id === "trial"
+    ? "Пробный · 3 дня"
+    : (OnLead.tgPlan?.(tgPlan.id)?.name || tgPlan.id || "");
+  const tgActive = !!(tgPlan.id && (tgPlan.lite || tgPlan.pro || tgUntil));
+  const tgUsed = state.tgSlots || { lite: 0, pro: 0 };
+  const tgHero = `<div class="card bill-plan-hero" style="margin-top:12px">
+    <div class="bill-plan-hero-main">
+      <span class="bill-mark">TG</span>
+      <div>
+        <h2>Telegram · ${esc(tgActive ? tgName : "не подключён")}</h2>
+        <p class="muted">${tgActive
+          ? `Lite ${tgUsed.lite}/${tgPlan.lite || 0} · Pro ${tgUsed.pro}/${tgPlan.pro || 0}${tgUntil ? ` · до ${esc(tgUntil)}` : ""}`
+          : "Отдельный тариф для воронок и закрытых каналов."}</p>
+      </div>
+      <span class="chip ${tgActive ? "chip-ok" : ""}">${tgActive ? "Активен" : "Не активен"}</span>
+    </div>
+    <div class="bill-plan-hero-acts">
+      <a class="btn ${tgActive ? "btn-ink" : "btn-primary"} btn-sm" href="#/office/telegram/tariffs">${tgActive ? "Продлить / сменить" : "Выбрать тариф Telegram"}</a>
+      <a class="btn btn-ghost btn-sm" href="#/office/telegram/channels">Каналы</a>
+      <a class="btn btn-ghost btn-sm" href="#/office/telegram/funnels">Воронки</a>
+    </div>
+  </div>`;
+
   const usageHtml = `<div class="bill-usage card">${usageStrip.map((u) =>
     `<a class="bill-usage-cell" href="${esc(u.href)}"><span class="muted">${esc(u.label)}</span><b>${esc(u.value)}</b></a>`).join("")}</div>`;
 
@@ -199,6 +224,7 @@ OnLead.billingOlPage = function billingOlPage(state) {
       <a class="btn btn-ghost btn-sm" href="#/office/balance">Кошелёк · ${state.balance.toLocaleString("ru-RU")} ₽</a>
     </div>
     ${planHero}
+    ${tgHero}
     ${usageHtml}
     ${packagesHtml}
     ${OnLead.BILLING_ADDONS.map(addonSection).join("")}

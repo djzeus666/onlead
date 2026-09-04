@@ -98,6 +98,32 @@ test('succeeded YooKassa payload credits once', () => {
   assert.equal(d.ops.filter((o) => o.paymentId === 'yk-2').length, 1);
 });
 
+test('tg-plan payment restores lite/pro even when pending row omitted slots', () => {
+  const d = store();
+  d.payments = [{
+    id: 'yk-tg',
+    userId: 'u1',
+    provider: 'yookassa',
+    status: 'pending',
+    kind: 'tg-plan',
+    tgPlan: 'pro',
+    months: 1,
+    amount: 1490,
+    title: 'Telegram Pro · 1 мес',
+    createdAt: Date.now(),
+  }];
+  const r = fulfillYookassaPayment(d, {
+    id: 'yk-tg',
+    status: 'succeeded',
+    metadata: { app: 'onlead', userId: 'u1', kind: 'tg-plan', tgPlan: 'pro', months: '1', amount: '1490' },
+  }, 'u1');
+  assert.equal(r.applied, true);
+  assert.equal(d.users[0].tgPlan.id, 'pro');
+  assert.equal(d.users[0].tgPlan.lite, 2);
+  assert.equal(d.users[0].tgPlan.pro, 1);
+  assert.ok(d.users[0].tgPlan.until > Date.now());
+});
+
 test('expired YooKassa object marks the local row canceled', () => {
   const d = store();
   d.payments = [{ id: 'yk-exp', userId: 'u1', status: 'pending', provider: 'yookassa', createdAt: 1 }];

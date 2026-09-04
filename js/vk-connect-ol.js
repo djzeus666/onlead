@@ -42,8 +42,15 @@ OnLead.consumePaidReturn = async function consumePaidReturn() {
       try { sessionStorage.removeItem("onlead-paid"); } catch { /* ignore */ }
     }
     await OnLead.refresh();
-    if (last.applied) OnLead._flash = "Оплата прошла. Баланс или подписка обновлены.";
-    else if (paidReturn && last.status && last.status !== "succeeded") {
+    if (last.applied) {
+      if (last.kind === "tg-plan" || /telegram/i.test(String(last.title || ""))) {
+        OnLead._flash = last.title
+          ? `Оплата прошла: ${last.title}. Тариф Telegram активен в разделе «Каналы → Тарифы».`
+          : "Оплата прошла: тариф Telegram активен.";
+      } else {
+        OnLead._flash = "Оплата прошла. Баланс или подписка обновлены.";
+      }
+    } else if (paidReturn && last.status && last.status !== "succeeded") {
       OnLead._flash = "Платёж ещё обрабатывается. Откройте «Баланс» через минуту — зачисление догонит само.";
     }
   } catch (err) {

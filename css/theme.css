@@ -1583,6 +1583,13 @@ body.vk-modal-open { overflow: hidden; }
   background: var(--surface-2);
 }
 .tg-plan .amount { font-size: 34px; }
+.tg-plan.on { outline: 2px solid var(--accent, #e4572e); }
+.tg-plan-status {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin: 0 0 4px; padding: 14px 16px;
+}
+.tg-plan-status-main { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.tg-plan-status-main b { font-size: 16px; }
 
 @media (max-width: 980px) {
   .hero-grid, .task-grid, .grid-3, .pub-foot .inner, .lp-edit, .sf-route,

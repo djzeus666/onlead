@@ -2,6 +2,15 @@
 import { decryptToken } from './crypto.mjs';
 import { cabinetTaskMessage } from './user-error.mjs';
 
+/** Mirror of billing.TG_PLANS slots — kept here to hydrate broken tgPlan rows without a cycle. */
+const TG_PLAN_SLOTS = {
+  start: { lite: 1, pro: 0, title: 'Старт' },
+  business: { lite: 3, pro: 0, title: 'Бизнес' },
+  agency: { lite: 10, pro: 0, title: 'Агентство' },
+  pro: { lite: 2, pro: 1, title: 'Pro' },
+  'pro-max': { lite: 5, pro: 3, title: 'Pro Max' },
+};
+
 export function botToken(b) {
   const enc = b?.tokenEnc;
   if (!enc) return '';
@@ -10,11 +19,36 @@ export function botToken(b) {
   catch { return ''; }
 }
 
+function asUntilMs(value) {
+  const n = Number(value);
+  if (Number.isFinite(n) && n > 0) return n;
+  const parsed = Date.parse(String(value || ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export function liveTgPlan(u) {
-  const p = u?.tgPlan;
-  if (p?.until && p.until > Date.now()) return p;
-  if (u?.trialUntil && u.trialUntil > Date.now()) return { id: 'trial', lite: 1, pro: 0, until: u.trialUntil };
+  const raw = u?.tgPlan;
+  const until = asUntilMs(raw?.until);
+  if (raw && until > Date.now()) {
+    const catalog = TG_PLAN_SLOTS[String(raw.id || '')];
+    let lite = Number(raw.lite || 0);
+    let pro = Number(raw.pro || 0);
+    // Repair purchases that stored id/until but dropped slot counts (quoteFromRow bug).
+    if (catalog && !(lite || pro)) {
+      lite = catalog.lite;
+      pro = catalog.pro;
+    }
+    return { id: raw.id || null, lite, pro, until };
+  }
+  const trialUntil = asUntilMs(u?.trialUntil);
+  if (trialUntil > Date.now()) return { id: 'trial', lite: 1, pro: 0, until: trialUntil };
   return { id: null, lite: 0, pro: 0, until: 0 };
+}
+
+export function tgPlanLabel(plan) {
+  if (!plan?.id) return '';
+  if (plan.id === 'trial') return 'Пробный · 3 дня';
+  return TG_PLAN_SLOTS[String(plan.id)]?.title || String(plan.id);
 }
 
 export function tgSlotUsage(d, userId) {

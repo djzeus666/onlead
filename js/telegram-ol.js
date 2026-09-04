@@ -233,17 +233,70 @@ OnLead.tgSettingsFromForm = function tgSettingsFromForm(form) {
 
 /* --- classic telegram pages (tariffs/bots/channels/funnels list) --- */
 OnLead.fmtUntil = function fmtUntil(ts) {
-  if (!ts || ts < Date.now()) return "";
-  return new Date(ts).toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+  const n = Number(ts) || Date.parse(String(ts || "")) || 0;
+  if (!n || n < Date.now()) return "";
+  return new Date(n).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" });
 }
 
 OnLead.liveTg = function liveTg(state) {
   const p = state.tgPlan || {};
-  if (p.until && p.until > Date.now()) return p;
-  if (state.user?.trialUntil && state.user.trialUntil > Date.now()) {
-    return { id: "trial", lite: 1, pro: 0, until: state.user.trialUntil };
+  const until = Number(p.until) || Date.parse(String(p.until || "")) || 0;
+  if (until > Date.now()) {
+    const catalog = OnLead.tgPlan?.(p.id);
+    let lite = Number(p.lite || 0);
+    let pro = Number(p.pro || 0);
+    if (catalog && !(lite || pro)) {
+      lite = Number(catalog.lite || 0);
+      pro = Number(catalog.pro || 0);
+    }
+    return { id: p.id || null, lite, pro, until };
+  }
+  if (state.user?.trialUntil && Number(state.user.trialUntil) > Date.now()) {
+    return { id: "trial", lite: 1, pro: 0, until: Number(state.user.trialUntil) };
   }
   return { id: null, lite: 0, pro: 0, until: 0 };
+}
+
+OnLead.tgPlanStatusCard = function tgPlanStatusCard(state) {
+  const esc = OnLead.esc || ((s) => String(s ?? ""));
+  const plan = OnLead.liveTg(state);
+  const used = state.tgSlots || { lite: 0, pro: 0 };
+  const pendingTg = (state.pendingPayments || []).filter((p) => p.kind === "tg-plan");
+  const until = OnLead.fmtUntil(plan.until);
+  const name = plan.id === "trial"
+    ? "Пробный · 3 дня"
+    : (OnLead.tgPlan(plan.id)?.name || plan.id || "");
+  const active = !!(plan.id && (plan.lite || plan.pro || until));
+
+  let body;
+  if (active) {
+    body = `<div class="tg-plan-status-main">
+      <span class="chip chip-ok">Активен</span>
+      <div>
+        <b>${esc(name)}</b>
+        <p class="muted" style="margin:4px 0 0">Lite ${used.lite}/${plan.lite} · Pro ${used.pro}/${plan.pro}${until ? ` · до ${esc(until)}` : ""}</p>
+      </div>
+    </div>
+    <a class="btn btn-ghost btn-sm" href="#/office/telegram/tariffs">Сменить тариф</a>`;
+  } else {
+    body = `<div class="tg-plan-status-main">
+      <span class="chip">Нет тарифа</span>
+      <div>
+        <b>Telegram не подключён</b>
+        <p class="muted" style="margin:4px 0 0">Купите тариф — слоты Lite/Pro появятся здесь.</p>
+      </div>
+    </div>
+    <a class="btn btn-primary btn-sm" href="#/office/telegram/tariffs">Выбрать тариф</a>`;
+  }
+
+  const pendingHtml = pendingTg.length
+    ? pendingTg.map((p) => `<div class="notice" style="margin-top:10px">
+        <div>Ожидает оплату: ${esc(p.title || "Тариф Telegram")} — ${Number(p.amount || 0).toLocaleString("ru-RU")} ₽</div>
+        <button type="button" class="btn btn-ink btn-sm" data-act="resume-pay" data-kind="tg-plan" data-amount="${esc(p.amount || "")}" data-tgplan="${esc(p.tgPlan || "")}" data-m="${esc(p.months || 1)}" data-url="${esc(p.confirmationUrl || "")}">Продолжить оплату</button>
+      </div>`).join("")
+    : "";
+
+  return `<div class="card tg-plan-status">${body}</div>${pendingHtml}`;
 }
 
 OnLead.funnelSecHtml = function funnelSecHtml(s = {}) {
@@ -259,27 +312,26 @@ OnLead.funnelSecHtml = function funnelSecHtml(s = {}) {
 OnLead.telegramTariffs = function telegramTariffs(state, nav) {
   const months = Math.max(1, Number(OnLead.hashParams().get("m") || 1));
   const plan = OnLead.liveTg(state);
-  const used = state.tgSlots || { lite: 0, pro: 0 };
   const catalog = OnLead.TG_PLANS || [];
   const periods = OnLead.TG_PERIODS || [];
-  const until = OnLead.fmtUntil(plan.until);
   const live = !!(state.settings?.telegramLive || OnLead.health?.telegramLive);
   const trialBtn = (!live || state.tgTrialUsed)
     ? ""
     : `<button type="button" class="btn btn-ghost" data-act="tg-trial">Сначала попробовать 3 дня бесплатно</button>`;
-  const buy = (p, price) => live
-    ? `<button type="button" class="btn btn-primary btn-block" style="margin-top:12px" data-act="buy-tg" data-plan="${OnLead.esc(p.id)}" data-m="${months}" data-amount="${price}">Подключить</button>`
-    : `<button type="button" class="btn btn-ghost btn-block" style="margin-top:12px" disabled>Оплата закрыта</button>`;
+  const buy = (p, price, isCurrent) => {
+    if (!live) return `<button type="button" class="btn btn-ghost btn-block" style="margin-top:12px" disabled>Оплата закрыта</button>`;
+    if (isCurrent) return `<button type="button" class="btn btn-ink btn-block" style="margin-top:12px" data-act="buy-tg" data-plan="${OnLead.esc(p.id)}" data-m="${months}" data-amount="${price}">Продлить</button>`;
+    return `<button type="button" class="btn btn-primary btn-block" style="margin-top:12px" data-act="buy-tg" data-plan="${OnLead.esc(p.id)}" data-m="${months}" data-amount="${price}">Подключить</button>`;
+  };
   return `${nav}
+    ${OnLead.tgPlanStatusCard(state)}
     ${live
-      ? `<div class="notice"><div>Бот отвечает в Telegram по сохранённой воронке: /start и кнопки. Подключите бота, включите воронку, напишите боту.</div></div>`
-      : `<div class="notice"><div>Рассылка из кабинета ещё не запущена.</div></div>`}
+      ? `<div class="notice" style="margin-top:14px"><div>Бот отвечает в Telegram по сохранённой воронке: /start и кнопки. Подключите бота, включите воронку, напишите боту.</div></div>`
+      : `<div class="notice" style="margin-top:14px"><div>Рассылка из кабинета ещё не запущена.</div></div>`}
     <div class="h-row">
       <div>
         <h1>Тарифы Telegram</h1>
-        <p class="muted" style="margin:0">${plan.lite || plan.pro
-          ? `Сейчас: ${plan.id === "trial" ? "пробный" : OnLead.esc(OnLead.tgPlan(plan.id)?.name || plan.id)} · Lite ${used.lite}/${plan.lite} · Pro ${used.pro}/${plan.pro}${until ? " · до " + until : ""}`
-          : "Слот — одна воронка. Подключите тариф или возьмите 3 дня."}</p>
+        <p class="muted" style="margin:0">Слот — одна воронка. После оплаты статус и срок сразу видны сверху.</p>
       </div>
       <div class="toolbar" style="margin:0">
         <a class="btn btn-ink btn-sm" href="#/office/telegram/funnels">Открыть конструктор</a>
@@ -290,14 +342,15 @@ OnLead.telegramTariffs = function telegramTariffs(state, nav) {
       <a href="#/office/telegram/tariffs?m=${p.id}" class="${months === p.id ? "on" : ""}">${OnLead.esc(p.label)}</a>`).join("")}</div></div>
     <div class="grid-3">${catalog.map((p) => {
       const price = OnLead.tgPrice(p, months);
-      return `<div class="card price-card tg-plan ${p.hit ? "hit" : ""}">
-        ${p.hit ? `<span class="chip">выгодно</span>` : ""}
+      const isCurrent = plan.id === p.id && (plan.lite || plan.pro);
+      return `<div class="card price-card tg-plan ${p.hit ? "hit" : ""} ${isCurrent ? "on" : ""}">
+        ${isCurrent ? `<span class="chip chip-ok">ваш тариф</span>` : (p.hit ? `<span class="chip">выгодно</span>` : "")}
         <h3>${OnLead.esc(p.name)}</h3>
         <div class="amount">${price.toLocaleString("ru-RU")} ₽</div>
         <p>${OnLead.esc(p.hint)}</p>
         <p style="margin-top:8px">${OnLead.esc(p.blurb)}</p>
         <p class="muted" style="margin-top:8px">Lite ${p.lite} · Pro ${p.pro}</p>
-        ${buy(p, price)}
+        ${buy(p, price, isCurrent)}
       </div>`;
     }).join("")}
       <div class="card">
@@ -350,7 +403,8 @@ OnLead.telegramChannels = function telegramChannels(state, nav) {
   };
   return `${nav}<div class="h-row"><h1>Каналы</h1>
       <button type="button" class="btn btn-primary" data-act="refresh-tg-channels">Обновить список</button></div>
-    <p class="muted" style="margin-top:0">Закрытый канал нужен для воронок Pro. Добавьте бота администратором с правом приглашать, затем укажите @username — webhook не читает getUpdates.</p>
+    ${OnLead.tgPlanStatusCard(state)}
+    <p class="muted" style="margin-top:14px">Закрытый канал нужен для воронок Pro. Добавьте бота администратором с правом приглашать, затем укажите @username — webhook не читает getUpdates.</p>
     ${plan.pro ? "" : `<div class="notice"><div>Pro-слот нужен, чтобы выдавать доступ в канал по сроку. Lite-воронки работают без канала.</div>
       <a class="btn btn-ink btn-sm" href="#/office/telegram/tariffs">Тарифы</a></div>`}
     ${plan.pro ? `<div class="card" style="margin-bottom:16px">
@@ -393,7 +447,8 @@ OnLead.telegramFunnels = function telegramFunnels(state, nav) {
       </div></div>`;
   };
   return `${nav}
-    <div class="h-row">
+    ${OnLead.tgPlanStatusCard(state)}
+    <div class="h-row" style="margin-top:14px">
       <div><h1>Воронки</h1>
         <p class="muted" style="margin:0">Слоты: Lite ${used.lite}/${plan.lite || 0} · Pro ${used.pro}/${plan.pro || 0}. Архив освобождает слот.</p></div>
     </div>
