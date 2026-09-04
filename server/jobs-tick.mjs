@@ -83,7 +83,15 @@ export async function tick() {
       }
     });
     const db2 = load();
-    const running = db2.campaigns.filter((c) => c.status === 'running');
+    // Prefer campaigns that waited longest so quiet waits (congrats hour window)
+    // and a long queue are not starved by the same first 3 forever.
+    const running = db2.campaigns
+      .filter((c) => c.status === 'running')
+      .sort((a, b) => {
+        const ta = Date.parse(a.stats?.updatedAt || '') || Date.parse(a.created || '') || 0;
+        const tb = Date.parse(b.stats?.updatedAt || '') || Date.parse(b.created || '') || 0;
+        return ta - tb;
+      });
     for (const c of running.slice(0, 3)) {
       try {
         const result = await runCampaignStep(c);

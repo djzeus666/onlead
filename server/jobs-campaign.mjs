@@ -106,12 +106,14 @@ export function applyCampaignResult(campaignId, result) {
     if (result.meta?.editorIdx != null) cam.stats.editorIdx = result.meta.editorIdx;
     if (result.meta?.accessSet) cam.stats.accessSet = true;
     if (result.skip) {
+      // Quiet waits (hour window / no birthdays / pause) must still heartbeat
+      // updatedAt — otherwise the 45m stale watchdog kills scheduled tools.
+      cam.stats.updatedAt = nowIso;
+      if (userMsg) cam.stats.lastMessage = userMsg;
       if (!result.quiet) {
-        cam.stats.lastMessage = userMsg;
         if (adminMsg && (adminMsg !== userMsg || isAdminDiagnosticMessage(adminMsg))) {
           cam.stats.lastAdminMessage = adminMsg;
         }
-        cam.stats.updatedAt = nowIso;
       }
       if (result.done) cam.status = 'done';
       return;
