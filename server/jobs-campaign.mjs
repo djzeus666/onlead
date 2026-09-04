@@ -118,8 +118,13 @@ export function applyCampaignResult(campaignId, result) {
       if (result.done) cam.status = 'done';
       return;
     }
-    if (result.ok) cam.stats.ok += 1;
-    else if (!result.retryable) cam.stats.fail += 1;
+    if (result.ok) {
+      cam.stats.ok += 1;
+      cam.stats.failStreak = 0;
+    } else if (!result.retryable) {
+      cam.stats.fail += 1;
+      cam.stats.failStreak = Number(cam.stats.failStreak || 0) + 1;
+    }
     cam.stats.lastMessage = userMsg;
     if (adminMsg) cam.stats.lastAdminMessage = adminMsg;
     cam.stats.updatedAt = nowIso;
@@ -162,7 +167,9 @@ export function applyCampaignResult(campaignId, result) {
     if (result.meta?.aiDialogs) cam.stats.aiDialogs = result.meta.aiDialogs;
     if (result.meta?.storyMetrics) cam.stats.storyMetrics = result.meta.storyMetrics;
     if (result.done) cam.status = 'done';
-    if (!result.ok && cam.stats.fail >= 8) cam.status = 'error';
+    // Stop only on a consecutive streak — scattered VK flukes after dozens of
+    // successes (e.g. masslike 80 ok / 8 err) must not kill a healthy run.
+    if (!result.ok && Number(cam.stats.failStreak || 0) >= 8) cam.status = 'error';
     d.jobs.unshift({
       id: 'j' + Date.now(),
       campaignId: cam.id,

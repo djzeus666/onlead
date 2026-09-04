@@ -61,7 +61,17 @@ export async function handle(ctx) {
     const id = path.split('/')[3];
     mutate((d) => {
       const c = d.campaigns.find((x) => x.id === id && x.userId === u.id);
-      if (c) c.status = c.status === 'running' ? 'paused' : 'running';
+      if (!c) return;
+      const next = c.status === 'running' ? 'paused' : 'running';
+      c.status = next;
+      if (next === 'running') {
+        c.stats = c.stats || {};
+        c.stats.failStreak = 0;
+        c.stats.updatedAt = new Date().toISOString();
+        if (/зависла без прогресса|без прогресса \(не тикала\)/i.test(String(c.stats.lastMessage || ''))) {
+          c.stats.lastMessage = 'Запущена снова';
+        }
+      }
     });
     send(res, 200, { ok: true });
     return true;

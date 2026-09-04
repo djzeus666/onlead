@@ -105,13 +105,13 @@ export function masslikePace(stats, payload, now = new Date(), extras = {}) {
   const sentHour = stats?.hourKey === hourKey ? Number(stats.sentHour || 0) : 0;
   const window = parseMasslikeWindow(payload?.window);
   if (!masslikeInWindow(window, now)) {
-    return { skip: true, message: `Вне окна ${window.label}` };
+    return { skip: true, quiet: true, message: `Вне окна ${window.label}` };
   }
   if (sentToday >= perDay) {
-    return { skip: true, message: `Дневной лимит ${perDay} лайков — продолжим завтра` };
+    return { skip: true, quiet: true, message: `Дневной лимит ${perDay} лайков — продолжим завтра` };
   }
   if (sentHour >= perHour) {
-    return { skip: true, message: `Часовой лимит ${perHour} — пауза до следующего часа` };
+    return { skip: true, quiet: true, message: `Часовой лимит ${perHour} — пауза до следующего часа` };
   }
   const last = stats?.lastLikeAt ? Date.parse(stats.lastLikeAt) : 0;
   if (last && now.getTime() - last < minGapMs) {
