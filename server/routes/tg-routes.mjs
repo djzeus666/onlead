@@ -77,7 +77,7 @@ if (method === 'GET' && path === '/api/tg/receipts') {
     const u = requireUser(req, res); if (!u) return true;
     const body = await readBody(req);
     const token = String(body.token || body.username || '').trim();
-    if (!token) { send(res, 400, { error: 'Р’СЃС‚Р°РІСЊС‚Рµ С‚РѕРєРµРЅ РёР· @BotFather' }); return true; }
+    if (!token) { send(res, 400, { error: 'Вставьте токен из @BotFather' }); return true; }
     if (!allowMocks() && isMockToken(token)) send(res, 400, { error: mockBlockedMessage('Telegram') });
     let me;
     try { me = await telegramGetMe(token); }
@@ -130,7 +130,7 @@ if (method === 'GET' && path === '/api/tg/receipts') {
       if (body.status === 'on') ensureBotWebhookSecret(b);
       return b;
     });
-    if (!bot) { send(res, 404, { error: 'Р‘РѕС‚ РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!bot) { send(res, 404, { error: 'Бот не найден' }); return true; }
     if (bot.status === 'on') {
       try { await registerBotWebhook(bot); }
       catch (err) { console.error('[tg webhook] setWebhook', err.message); }
@@ -150,7 +150,7 @@ if (method === 'GET' && path === '/api/tg/receipts') {
     const u = requireUser(req, res); if (!u) return true;
     const d0 = load();
     const bots = d0.bots.filter((b) => b.userId === u.id && b.status !== 'off');
-    if (!bots.length) { send(res, 400, { error: 'РЎРЅР°С‡Р°Р»Р° РїРѕРґРєР»СЋС‡РёС‚Рµ Р±РѕС‚Р° Рё СЃРґРµР»Р°Р№С‚Рµ РµРіРѕ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј РєР°РЅР°Р»Р°' }); return true; }
+    if (!bots.length) { send(res, 400, { error: 'Сначала подключите бота и сделайте его администратором канала' }); return true; }
     const found = [];
     for (const b of bots) {
       const token = botToken(b);
@@ -192,7 +192,7 @@ if (method === 'GET' && path === '/api/tg/receipts') {
     const u = requireUser(req, res); if (!u) return true;
     const body = await readBody(req);
     let username = String(body.username || body.name || '').trim().slice(0, 80);
-    if (!username) { send(res, 400, { error: 'РЈРєР°Р¶РёС‚Рµ @username РєР°РЅР°Р»Р°' }); return true; }
+    if (!username) { send(res, 400, { error: 'Укажите @username канала' }); return true; }
     if (!username.startsWith('@') && !username.startsWith('-') && !username.includes('t.me/')) {
       username = '@' + username.replace(/^@/, '');
     }
@@ -235,12 +235,12 @@ if (method === 'GET' && path === '/api/tg/receipts') {
   if (method === 'POST' && path === '/api/tg/trial') {
     const u = requireUser(req, res); if (!u) return true;
     if (!isTelegramLive()) {
-      send(res, 400, { error: 'РџСЂРѕР±РЅС‹Р№ Telegram Р·Р°РєСЂС‹С‚, РїРѕРєР° РЅРµ РІРєР»СЋС‡С‘РЅ Р¶РёРІРѕР№ webhook.' });
+      send(res, 400, { error: 'Пробный Telegram закрыт, пока не включён живой webhook.' });
     return true;
     }
-    if (u.tgTrialUsed) { send(res, 400, { error: 'РџСЂРѕР±РЅС‹Рµ 3 РґРЅСЏ Telegram СѓР¶Рµ РёСЃРїРѕР»СЊР·РѕРІР°РЅС‹' }); return true; }
+    if (u.tgTrialUsed) { send(res, 400, { error: 'Пробные 3 дня Telegram уже использованы' }); return true; }
     if (u.tgPlan?.until > Date.now() && u.tgPlan.id && u.tgPlan.id !== 'trial') {
-      send(res, 400, { error: 'РЈ РІР°СЃ СѓР¶Рµ РµСЃС‚СЊ С‚Р°СЂРёС„ Telegram' });
+      send(res, 400, { error: 'У вас уже есть тариф Telegram' });
     }
     mutate((d) => {
       const x = d.users.find((i) => i.id === u.id);
@@ -263,7 +263,7 @@ if (method === 'GET' && path === '/api/tg/receipts') {
       if (body.status === 'on' || body.status === 'off') row.status = body.status;
       return row;
     });
-    if (!ch) { send(res, 404, { error: 'РљР°РЅР°Р» РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!ch) { send(res, 404, { error: 'Канал не найден' }); return true; }
     send(res, 200, ch);
   }
 
@@ -283,11 +283,11 @@ if (method === 'GET' && path === '/api/tg/receipts') {
     const plan = liveTgPlan(d0.users.find((x) => x.id === u.id) || u);
     const used = tgSlotUsage(d0, u.id);
     if (kind === 'pro' && used.pro >= (plan.pro || 0)) {
-      send(res, 400, { error: 'РќРµС‚ СЃРІРѕР±РѕРґРЅРѕРіРѕ СЃР»РѕС‚Р° Pro вЂ” РїРѕРґРєР»СЋС‡РёС‚Рµ С‚Р°СЂРёС„ РёР»Рё РѕС‚РїСЂР°РІСЊС‚Рµ РІРѕСЂРѕРЅРєСѓ РІ Р°СЂС…РёРІ' });
+      send(res, 400, { error: 'Нет свободного слота Pro — подключите тариф или отправьте воронку в архив' });
     return true;
     }
     if (kind !== 'pro' && used.lite >= (plan.lite || 0)) {
-      send(res, 400, { error: 'РќРµС‚ СЃРІРѕР±РѕРґРЅРѕРіРѕ СЃР»РѕС‚Р° Lite вЂ” РїРѕРґРєР»СЋС‡РёС‚Рµ С‚Р°СЂРёС„ РёР»Рё РѕС‚РїСЂР°РІСЊС‚Рµ РІРѕСЂРѕРЅРєСѓ РІ Р°СЂС…РёРІ' });
+      send(res, 400, { error: 'Нет свободного слота Lite — подключите тариф или отправьте воронку в архив' });
     return true;
     }
     const sections = Array.isArray(body.sections)
@@ -302,14 +302,14 @@ if (method === 'GET' && path === '/api/tg/receipts') {
       const row = {
         id: 'fn' + Date.now(),
         userId: u.id,
-        name: String(body.name || 'РќРѕРІР°СЏ РІРѕСЂРѕРЅРєР°').trim().slice(0, 80) || 'РќРѕРІР°СЏ РІРѕСЂРѕРЅРєР°',
+        name: String(body.name || 'Новая воронка').trim().slice(0, 80) || 'Новая воронка',
         scenario: String(body.scenario || '').slice(0, 40),
         kind,
         botId: String(body.botId || ''),
         status: 'on',
         product: String(body.product || '').slice(0, 120),
         price: String(body.price || '').slice(0, 40),
-        sections: sections.length ? sections : [{ title: 'РЎС‚Р°СЂС‚', text: 'Р”РѕР±СЂРѕ РїРѕР¶Р°Р»РѕРІР°С‚СЊ.', buttons: 'Р”Р°Р»РµРµ' }],
+        sections: sections.length ? sections : [{ title: 'Старт', text: 'Добро пожаловать.', buttons: 'Далее' }],
         products: [],
         settings: {},
       };
@@ -326,17 +326,17 @@ if (method === 'GET' && path === '/api/tg/receipts') {
     const body = await readBody(req);
     const d0 = load();
     const row0 = (d0.tgFunnels || []).find((x) => x.id === id && x.userId === u.id);
-    if (!row0) { send(res, 404, { error: 'Р’РѕСЂРѕРЅРєР° РЅРµ РЅР°Р№РґРµРЅР°' }); return true; }
+    if (!row0) { send(res, 404, { error: 'Воронка не найдена' }); return true; }
     const nextStatus = (body.status === 'on' || body.status === 'off' || body.status === 'archive') ? body.status : row0.status;
     if (row0.status === 'archive' && nextStatus !== 'archive') {
       const kind = row0.kind === 'pro' ? 'pro' : 'lite';
       const plan = liveTgPlan(d0.users.find((x) => x.id === u.id) || u);
       const used = tgSlotUsage(d0, u.id);
       if (kind === 'pro' && used.pro >= (plan.pro || 0)) {
-        send(res, 400, { error: 'РќРµС‚ СЃРІРѕР±РѕРґРЅРѕРіРѕ СЃР»РѕС‚Р° Pro' });
+        send(res, 400, { error: 'Нет свободного слота Pro' });
       }
       if (kind !== 'pro' && used.lite >= (plan.lite || 0)) {
-        send(res, 400, { error: 'РќРµС‚ СЃРІРѕР±РѕРґРЅРѕРіРѕ СЃР»РѕС‚Р° Lite' });
+        send(res, 400, { error: 'Нет свободного слота Lite' });
       return true;
       }
     }
@@ -363,7 +363,7 @@ if (method === 'GET' && path === '/api/tg/receipts') {
       }
       return row;
     });
-    if (!funnel) { send(res, 404, { error: 'Р’РѕСЂРѕРЅРєР° РЅРµ РЅР°Р№РґРµРЅР°' }); return true; }
+    if (!funnel) { send(res, 404, { error: 'Воронка не найдена' }); return true; }
     send(res, 200, funnel);
   }
 
@@ -371,7 +371,7 @@ if (method === 'GET' && path === '/api/tg/receipts') {
     const u = requireUser(req, res); if (!u) return true;
     const id = path.split('/')[4];
     const products = listFunnelProducts(u.id, id);
-    if (products == null) { send(res, 404, { error: 'Р’РѕСЂРѕРЅРєР° РЅРµ РЅР°Р№РґРµРЅР°' }); return true; }
+    if (products == null) { send(res, 404, { error: 'Воронка не найдена' }); return true; }
     send(res, 200, products);
   }
 
@@ -380,7 +380,7 @@ if (method === 'GET' && path === '/api/tg/receipts') {
     const id = path.split('/')[4];
     const body = await readBody(req);
     const row = createFunnelProduct(u.id, id, body);
-    if (!row) { send(res, 404, { error: 'Р’РѕСЂРѕРЅРєР° РЅРµ РЅР°Р№РґРµРЅР°' }); return true; }
+    if (!row) { send(res, 404, { error: 'Воронка не найдена' }); return true; }
     send(res, 200, row);
   }
 
@@ -391,7 +391,7 @@ if (method === 'GET' && path === '/api/tg/receipts') {
     const productId = parts[6];
     const body = await readBody(req);
     const row = patchFunnelProduct(u.id, funnelId, productId, body);
-    if (!row) { send(res, 404, { error: 'РќРµ РЅР°Р№РґРµРЅРѕ' }); return true; }
+    if (!row) { send(res, 404, { error: 'Не найдено' }); return true; }
     send(res, 200, row);
   }
 
@@ -407,7 +407,7 @@ if (method === 'GET' && path === '/api/tg/receipts') {
     const u = requireUser(req, res); if (!u) return true;
     const id = path.split('/')[4];
     const orders = listFunnelOrders(u.id, id);
-    if (orders == null) { send(res, 404, { error: 'Р’РѕСЂРѕРЅРєР° РЅРµ РЅР°Р№РґРµРЅР°' }); return true; }
+    if (orders == null) { send(res, 404, { error: 'Воронка не найдена' }); return true; }
     send(res, 200, orders);
   }
 
@@ -430,7 +430,7 @@ if (method === 'GET' && path === '/api/tg/receipts') {
     const id = path.split('/').pop();
     const body = await readBody(req);
     const row = patchHostedLeadBot(u.id, id, body);
-    if (!row) { send(res, 404, { error: 'Р‘РѕС‚ РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!row) { send(res, 404, { error: 'Бот не найден' }); return true; }
     send(res, 200, publicHostedLeadBot(row));
   }
 
@@ -459,7 +459,7 @@ if (method === 'GET' && path === '/api/tg/receipts') {
     const u = requireUser(req, res); if (!u) return true;
     const id = path.split('/')[3];
     const bot = listHostedLeadBots(u.id).find((b) => b.id === id);
-    if (!bot) { send(res, 404, { error: 'Р‘РѕС‚ РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!bot) { send(res, 404, { error: 'Бот не найден' }); return true; }
     send(res, 200, { snippet: widgetSnippetForBot(bot), endpoint: bot.publicKey });
   }
 
@@ -477,7 +477,7 @@ if (method === 'GET' && path === '/api/tg/receipts') {
     const key = path.split('/')[4];
     const body = await readBody(req);
     const result = submitWidgetLead(key, body);
-    if (!result.ok) { send(res, 400, { error: result.error || 'РћС€РёР±РєР°' }); return true; }
+    if (!result.ok) { send(res, 400, { error: result.error || 'Орибка' }); return true; }
     send(res, 200, { ok: true, message: result.message });
   }
 

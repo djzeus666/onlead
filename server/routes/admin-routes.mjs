@@ -65,14 +65,14 @@ if (method === 'GET' && path === '/api/admin/overview') {
     if (body.credit != null) {
       const amount = Math.round(Number(body.credit));
       if (!Number.isFinite(amount) || amount === 0 || Math.abs(amount) > 300000) {
-        send(res, 400, { error: 'РЎСѓРјРјР° РЅР°С‡РёСЃР»РµРЅРёСЏ вЂ” РѕС‚ 1 РґРѕ 300 000 в‚Ѕ' });
+        send(res, 400, { error: 'Сумма начисления — от 1 до 300 000 ₽' });
       return true;
       }
     }
     if (body.aiCredits != null) {
       const credits = Math.round(Number(body.aiCredits));
       if (!Number.isFinite(credits) || credits === 0 || Math.abs(credits) > 100000) {
-        send(res, 400, { error: 'РљСЂРµРґРёС‚С‹ Image AI вЂ” РѕС‚ 1 РґРѕ 100 000' });
+        send(res, 400, { error: 'Кредиты Image AI — от 1 до 100 000' });
       return true;
       }
     }
@@ -149,7 +149,7 @@ if (method === 'GET' && path === '/api/admin/overview') {
     if (body.legal && typeof body.legal === 'object') {
       legalInn = String(body.legal.inn || '').replace(/\D/g, '').slice(0, 12);
       if (legalInn && !isValidInn(legalInn)) {
-        send(res, 400, { error: 'РРќРќ РЅРµ РїСЂРѕС…РѕРґРёС‚ РєРѕРЅС‚СЂРѕР»СЊРЅСѓСЋ СЃСѓРјРјСѓ Р¤РќРЎ. РџСЂРѕРІРµСЂСЊС‚Рµ С†РёС„СЂС‹ вЂ” Р·РЅР°С‡РµРЅРёРµ РЅРµ РїРѕРґСЃС‚Р°РІР»СЏРµС‚СЃСЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё.' });
+        send(res, 400, { error: 'ИНН не проходит контрольную сумму ФНС. Проверьте цифры — значение не подставляется автоматически.' });
       return true;
       }
     }
@@ -200,7 +200,7 @@ if (method === 'GET' && path === '/api/admin/overview') {
       send(res, 200, publicAiSettings(load().settings.ai));
     return true;
     } catch (err) {
-      sendFail(res, err, 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РєР»СЋС‡');
+      sendFail(res, err, 'Не удалось сохранить ключ');
     }
   }
 
@@ -211,7 +211,7 @@ if (method === 'GET' && path === '/api/admin/overview') {
       send(res, 200, result);
     return true;
     } catch (err) {
-      sendFail(res, err, 'РџСЂРѕРІРµСЂРєР° РЅРµ СѓРґР°Р»Р°СЃСЊ');
+      sendFail(res, err, 'Проверка не удалась');
     }
   }
 
@@ -219,14 +219,14 @@ if (method === 'GET' && path === '/api/admin/overview') {
     if (!requireAdmin(req, res)) return true;
     try {
       const img = await generateAiImage(
-        { prompt: 'Minimal SMM post cover, teal and cream, abstract geometric', ratio: '1:1 РїРѕСЃС‚' },
+        { prompt: 'Minimal SMM post cover, teal and cream, abstract geometric', ratio: '1:1 пост' },
         readAiConfig(load().settings),
       );
       const url = saveGeneratedImage(img);
       send(res, 200, { ok: true, url });
     return true;
     } catch (err) {
-      sendFail(res, err, 'РљР°СЂС‚РёРЅРєР° РЅРµ СЃРіРµРЅРµСЂРёСЂРѕРІР°Р»Р°СЃСЊ');
+      sendFail(res, err, 'Картинка не сгенерировалась');
     }
   }
 

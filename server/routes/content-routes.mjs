@@ -68,7 +68,7 @@ if (method === 'GET' && path === '/api/media/library') {
   if (method === 'GET' && path.startsWith('/api/media/') && path !== '/api/media/library' && path !== '/api/media/upload') {
     const name = path.split('/').pop();
     const file = generatedPath(name) || mediaPath(name);
-    if (!file || !existsSync(file)) send(res, 404, { error: 'РќРµС‚ С„Р°Р№Р»Р°' });
+    if (!file || !existsSync(file)) send(res, 404, { error: 'Нет файла' });
     const type = MIME[extname(file)] || 'image/png';
     res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'public, max-age=86400' });
     createReadStream(file).pipe(res);
@@ -105,7 +105,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const u = requireUser(req, res); if (!u) return true;
     const id = path.split('/').pop();
     const post = getPost(load(), u.id, id);
-    if (!post) { send(res, 404, { error: 'РџРѕСЃС‚ РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!post) { send(res, 404, { error: 'Пост не найден' }); return true; }
     send(res, 200, { post: publicPost(post) });
   }
 
@@ -114,7 +114,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const id = path.split('/').pop();
     const body = await readBody(req);
     const post = mutate((db) => updatePost(db, u.id, id, body));
-    if (!post) { send(res, 404, { error: 'РџРѕСЃС‚ РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!post) { send(res, 404, { error: 'Пост не найден' }); return true; }
     send(res, 200, { post: publicPost(post) });
   }
 
@@ -123,7 +123,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const id = path.split('/').pop();
     const hard = url.searchParams.get('hard') === '1';
     const ok = mutate((db) => deletePost(db, u.id, id, { hard }));
-    if (!ok) { send(res, 404, { error: 'РџРѕСЃС‚ РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!ok) { send(res, 404, { error: 'Пост не найден' }); return true; }
     send(res, 200, { ok: true });
   }
 
@@ -141,7 +141,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const user = load().users.find((x) => x.id === u.id);
     const { settings } = workflowFromUser(user);
     const post = mutate((db) => submitForApproval(db, u.id, id, settings));
-    if (!post) { send(res, 404, { error: 'РџРѕСЃС‚ РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!post) { send(res, 404, { error: 'Пост не найден' }); return true; }
     send(res, 200, { post: publicPost(post) });
   }
 
@@ -151,7 +151,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const user = load().users.find((x) => x.id === u.id);
     const { settings } = workflowFromUser(user);
     const post = mutate((db) => approvePost(db, u.id, id, settings));
-    if (!post) { send(res, 404, { error: 'РџРѕСЃС‚ РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!post) { send(res, 404, { error: 'Пост не найден' }); return true; }
     send(res, 200, { post: publicPost(post) });
   }
 
@@ -160,7 +160,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const id = path.split('/')[3];
     const body = await readBody(req);
     const post = mutate((db) => rejectPost(db, u.id, id, body.reason));
-    if (!post) { send(res, 404, { error: 'РџРѕСЃС‚ РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!post) { send(res, 404, { error: 'Пост не найден' }); return true; }
     send(res, 200, { post: publicPost(post) });
   }
 
@@ -169,7 +169,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const id = path.split('/')[3];
     const body = await readBody(req);
     const acc = resolveVkAccount(u, body.accountId);
-    if (!acc) { send(res, 400, { error: 'РџРѕРґРєР»СЋС‡РёС‚Рµ VK-Р°РєРєР°СѓРЅС‚' }); return true; }
+    if (!acc) { send(res, 400, { error: 'Подключите VK-аккаунт' }); return true; }
     const token = tokenOf(acc);
     const db = load();
     const userRow = db.users.find((x) => x.id === u.id);
@@ -190,13 +190,13 @@ if (method === 'GET' && path === '/api/media/library') {
     const body = await readBody(req);
     const db = load();
     const post = getPost(db, u.id, id);
-    if (!post) { send(res, 404, { error: 'РџРѕСЃС‚ РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!post) { send(res, 404, { error: 'Пост не найден' }); return true; }
     const cfg = readAiConfig(db.settings);
     try {
-      const prompt = String(body.prompt || 'РќР°РїРёС€Рё РєРѕСЂРѕС‚РєРёР№ РїРѕСЃС‚ РґР»СЏ VK').slice(0, 500);
+      const prompt = String(body.prompt || 'Напири короткий пост для VK').slice(0, 500);
       const topic = String(body.topic || post.title || post.text.slice(0, 80)).slice(0, 200);
       const { text } = await generateAiChat([
-        { role: 'system', content: 'РўС‹ SMM-СЂРµРґР°РєС‚РѕСЂ. РџРёС€Рё РїРѕСЃС‚С‹ РґР»СЏ VK: Р¶РёРІРѕ, РїРѕ РґРµР»Сѓ, Р±РµР· РєР°РІС‹С‡РµРє Рё С…РµС€С‚РµРі-СЃРїР°РјР°. 2вЂ“4 Р°Р±Р·Р°С†Р°.' },
+        { role: 'system', content: 'Ты SMM-редактор. Пири посты для VK: живо, по делу, без кавычек и хертег-спама. 2–4 абзаца.' },
         { role: 'user', content: `${prompt}\n\nРўРµРјР°: ${topic}` },
       ], cfg, { maxTokens: 400 });
       const updated = mutate((d) => updatePost(d, u.id, id, { text }));
@@ -265,7 +265,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const id = path.split('/').pop();
     const body = await readBody(req);
     const source = mutate((db) => updateRssSource(db, u.id, id, body));
-    if (!source) { send(res, 404, { error: 'РСЃС‚РѕС‡РЅРёРє РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!source) { send(res, 404, { error: 'Источник не найден' }); return true; }
     send(res, 200, { source });
   }
 
@@ -273,7 +273,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const u = requireUser(req, res); if (!u) return true;
     const id = path.split('/').pop();
     const ok = mutate((db) => deleteRssSource(db, u.id, id));
-    if (!ok) { send(res, 404, { error: 'РСЃС‚РѕС‡РЅРёРє РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!ok) { send(res, 404, { error: 'Источник не найден' }); return true; }
     send(res, 200, { ok: true });
   }
 
@@ -296,7 +296,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const u = requireUser(req, res); if (!u) return true;
     const id = path.split('/')[4];
     const db = load();
-    if (!getRssSource(db, u.id, id)) send(res, 404, { error: 'РСЃС‚РѕС‡РЅРёРє РЅРµ РЅР°Р№РґРµРЅ' });
+    if (!getRssSource(db, u.id, id)) send(res, 404, { error: 'Источник не найден' });
     const status = url.searchParams.get('status') || null;
     const take = Number(url.searchParams.get('take') || 100);
     send(res, 200, { items: listRssItems(db, u.id, id, { status, take }) });
@@ -308,7 +308,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const body = await readBody(req);
     const sourceId = String(body.sourceId || '');
     const items = Array.isArray(body.items) ? body.items : [];
-    if (!sourceId || !items.length) { send(res, 400, { error: 'Р’С‹Р±РµСЂРёС‚Рµ СЃС‚Р°С‚СЊРё' }); return true; }
+    if (!sourceId || !items.length) { send(res, 400, { error: 'Выберите статьи' }); return true; }
     const db = load();
     const aiConfig = readAiConfig(db.settings);
     try {
@@ -371,7 +371,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const id = path.split('/')[4];
     const body = await readBody(req);
     const source = mutate((db) => updateRepostSource(db, u.id, id, body));
-    if (!source) { send(res, 404, { error: 'РСЃС‚РѕС‡РЅРёРє РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!source) { send(res, 404, { error: 'Источник не найден' }); return true; }
     send(res, 200, { source });
   }
 
@@ -379,7 +379,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const u = requireUser(req, res); if (!u) return true;
     const id = path.split('/')[4];
     const ok = mutate((db) => deleteRepostSource(db, u.id, id));
-    if (!ok) { send(res, 404, { error: 'РСЃС‚РѕС‡РЅРёРє РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!ok) { send(res, 404, { error: 'Источник не найден' }); return true; }
     send(res, 200, { ok: true });
   }
 
@@ -388,9 +388,9 @@ if (method === 'GET' && path === '/api/media/library') {
     const id = path.split('/')[4];
     const db = load();
     const source = getRepostSource(db, u.id, id);
-    if (!source) { send(res, 404, { error: 'РСЃС‚РѕС‡РЅРёРє РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!source) { send(res, 404, { error: 'Источник не найден' }); return true; }
     const acc = resolveVkAccount(u, source.accountId);
-    if (!acc) { send(res, 400, { error: 'РџРѕРґРєР»СЋС‡РёС‚Рµ VK-Р°РєРєР°СѓРЅС‚ РґР»СЏ СЃРєР°РЅРёСЂРѕРІР°РЅРёСЏ' }); return true; }
+    if (!acc) { send(res, 400, { error: 'Подключите VK-аккаунт для сканирования' }); return true; }
     const token = tokenOf(acc);
     try {
       const result = await fetchRepostSource(db, u.id, id, token);
@@ -407,7 +407,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const u = requireUser(req, res); if (!u) return true;
     const id = path.split('/')[4];
     const db = load();
-    if (!getRepostSource(db, u.id, id)) send(res, 404, { error: 'РСЃС‚РѕС‡РЅРёРє РЅРµ РЅР°Р№РґРµРЅ' });
+    if (!getRepostSource(db, u.id, id)) send(res, 404, { error: 'Источник не найден' });
     const status = url.searchParams.get('status') || null;
     send(res, 200, { items: listRepostItems(db, u.id, id, { status, take: 100 }) });
   return true;
@@ -418,7 +418,7 @@ if (method === 'GET' && path === '/api/media/library') {
     const body = await readBody(req);
     const sourceId = String(body.sourceId || '');
     const items = Array.isArray(body.items) ? body.items : [];
-    if (!sourceId || !items.length) { send(res, 400, { error: 'Р’С‹Р±РµСЂРёС‚Рµ РїРѕСЃС‚С‹' }); return true; }
+    if (!sourceId || !items.length) { send(res, 400, { error: 'Выберите посты' }); return true; }
     try {
       const result = mutate((db) => importRepostItems(db, u.id, sourceId, items));
       send(res, 200, result);

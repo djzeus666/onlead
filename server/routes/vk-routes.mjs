@@ -26,7 +26,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
       send(res, 403, { error: 'Получение токена ЛС отключено администратором' });
       return true;
     }
-    // Base/messages: same as online-lead.ru вЂ” 5530956 / 6463690 + oauth.vk.com/blank.html.
+    // Base/messages: same as online-lead.ru — 5530956 / 6463690 + oauth.vk.com/blank.html.
     const baseAppId = resolveVkBaseAppId(load().settings);
     const messagesAppId = String(
       load().settings.vkMessagesAppId || process.env.VK_MESSAGES_APP_ID || '6463690',
@@ -43,7 +43,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
       + `&scope=${scope}&response_type=${responseType}&v=5.199&state=${state}`;
     if (!useCode) urlOut += '&revoke=1';
     const warning = forMessages && messagesAppId === '2685278'
-      ? 'Kate Mobile (2685278) VK С‡Р°СЃС‚Рѕ Р±Р»РѕРєРёСЂСѓРµС‚ (В«РЎРµСЂРІРёСЃ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅВ»). РЈРєР°Р¶РёС‚Рµ РїСЂРёР»РѕР¶РµРЅРёРµ 6463690, РєР°Рє РЅР° online-lead.ru.'
+      ? 'Kate Mobile (2685278) VK часто блокирует («Сервис заблокирован»). Укажите приложение 6463690, как на online-lead.ru.'
       : undefined;
     send(res, 200, {
       url: urlOut, appId, redirectUri, kind: forMessages ? 'messages' : 'base', flow: responseType, warning,
@@ -55,7 +55,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
     const u = requireUser(req, res); if (!u) return true;
     const body = await readBody(req);
     const code = String(body.code || '').trim();
-    if (!code) { send(res, 400, { error: 'РќРµС‚ code РѕС‚ VK' }); return true; }
+    if (!code) { send(res, 400, { error: 'Нет code от VK' }); return true; }
     const appId = resolveVkBaseAppId(load().settings);
     const redirectUri = resolveVkRedirectUri(false);
     try {
@@ -71,7 +71,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
     const u = requireUser(req, res); if (!u) return true;
     const body = await readBody(req);
     const raw = extractVkAccessToken(body.token || body.accessToken || '') || String(body.token || '').trim();
-    if (!raw) { send(res, 400, { error: 'РќРµС‚ access_token VK' }); return true; }
+    if (!raw) { send(res, 400, { error: 'Нет access_token VK' }); return true; }
     if (!allowMocks() && isMockToken(raw)) { send(res, 400, { error: mockBlockedMessage('VK') }); return true; }
     const fromBrowser = normalizeChannels(body.channels);
     let info;
@@ -91,13 +91,13 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
     if (!channels.length || !channelsHaveGroups(channels)) {
       try {
         channels = mergeChannels(channels, await vkListChannels(raw));
-      } catch { /* IP-bound blank.html token вЂ” groups only from browser */ }
+      } catch { /* IP-bound blank.html token — groups only from browser */ }
     }
     const db = load();
     const mine = db.accounts.filter((a) => a.userId === u.id);
     const existing = mine.find((a) => String(a.vkId) === String(info.externalAccountId));
     if (!existing && mine.length >= (u.accountSlots || 3)) {
-      send(res, 400, { error: 'РќРµС‚ СЃРІРѕР±РѕРґРЅС‹С… СЃР»РѕС‚РѕРІ' });
+      send(res, 400, { error: 'Нет свободных слотов' });
     return true;
     }
     const tokenEnc = raw.startsWith('mock:') ? raw : encryptToken(raw, process.env.TOKEN_ENCRYPTION_KEY);
@@ -115,7 +115,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
         a.metadata = { ...a.metadata, ...info.metadata };
         a.channels = channels;
         a.updatedAt = Date.now();
-        d.logs.unshift({ id: 'log-' + Date.now(), at: new Date().toISOString(), level: 'info', userId: u.id, message: `РћР±РЅРѕРІР»С‘РЅ VK ${a.name} В· РіСЂСѓРїРї ${groupsCount}` });
+        d.logs.unshift({ id: 'log-' + Date.now(), at: new Date().toISOString(), level: 'info', userId: u.id, message: `Обновлён VK ${a.name} · групп ${groupsCount}` });
         return a;
       }
       const a = {
@@ -133,7 +133,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
         createdAt: Date.now(),
       };
       d.accounts.push(a);
-      d.logs.unshift({ id: 'log-' + Date.now(), at: new Date().toISOString(), level: 'info', userId: u.id, message: `РџРѕРґРєР»СЋС‡С‘РЅ VK ${a.name} В· РіСЂСѓРїРї ${groupsCount}` });
+      d.logs.unshift({ id: 'log-' + Date.now(), at: new Date().toISOString(), level: 'info', userId: u.id, message: `Подключён VK ${a.name} · групп ${groupsCount}` });
       return a;
     });
     const { tokenEnc: _hide, messagesTokenEnc: _hideMsg, ...safe } = acc;
@@ -144,12 +144,12 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
   if (method === 'POST' && path.match(/^\/api\/accounts\/[^/]+\/messages-token$/)) {
     const u = requireUser(req, res); if (!u) return true;
     if (load().settings.vkMessagesUiEnabled !== true) {
-      send(res, 403, { error: 'РўРѕРєРµРЅ Р›РЎ РѕС‚РєР»СЋС‡С‘РЅ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј' });
+      send(res, 403, { error: 'Токен ЛС отключён администратором' });
     return true;
     }
     const id = path.split('/')[3];
     const acc = load().accounts.find((a) => a.id === id && a.userId === u.id);
-    if (!acc) { send(res, 404, { error: 'РќРµС‚ Р°РєРєР°СѓРЅС‚Р°' }); return true; }
+    if (!acc) { send(res, 404, { error: 'Нет аккаунта' }); return true; }
     const body = await readBody(req);
     const clear = body.clear === true || body.messagesToken === '' || body.token === '';
     if (clear) {
@@ -166,7 +166,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
     }
     const raw = extractVkAccessToken(body.messagesToken || body.token || body.accessToken || '')
       || String(body.messagesToken || body.token || '').trim();
-    if (!raw) { send(res, 400, { error: 'РќРµС‚ access_token РґР»СЏ СЃРѕРѕР±С‰РµРЅРёР№' }); return true; }
+    if (!raw) { send(res, 400, { error: 'Нет access_token для сообщений' }); return true; }
     if (!allowMocks() && isMockToken(raw)) { send(res, 400, { error: mockBlockedMessage('VK') }); return true; }
     try {
       await vkAssertMessagesPermission(raw);
@@ -185,7 +185,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
         at: new Date().toISOString(),
         level: 'info',
         userId: u.id,
-        message: `РўРѕРєРµРЅ СЃРѕРѕР±С‰РµРЅРёР№ VK РґР»СЏ ${a.name}`,
+        message: `Токен сообщений VK для ${a.name}`,
       });
     });
     send(res, 200, publicAccount(load().accounts.find((a) => a.id === id)));
@@ -195,13 +195,13 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
   if (method === 'POST' && path.match(/^\/api\/accounts\/[^/]+\/messages-token\/check$/)) {
     const u = requireUser(req, res); if (!u) return true;
     if (load().settings.vkMessagesUiEnabled !== true) {
-      send(res, 403, { error: 'РўРѕРєРµРЅ Р›РЎ РѕС‚РєР»СЋС‡С‘РЅ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј' });
+      send(res, 403, { error: 'Токен ЛС отключён администратором' });
     return true;
     }
     const id = path.split('/')[3];
     const acc = load().accounts.find((a) => a.id === id && a.userId === u.id);
-    if (!acc) { send(res, 404, { error: 'РќРµС‚ Р°РєРєР°СѓРЅС‚Р°' }); return true; }
-    if (!acc.messagesTokenEnc) { send(res, 400, { error: 'РўРѕРєРµРЅ СЃРѕРѕР±С‰РµРЅРёР№ РЅРµ РїРѕРґРєР»СЋС‡С‘РЅ', ok: false }); return true; }
+    if (!acc) { send(res, 404, { error: 'Нет аккаунта' }); return true; }
+    if (!acc.messagesTokenEnc) { send(res, 400, { error: 'Токен сообщений не подключён', ok: false }); return true; }
     const token = tokenOf(acc, { messages: true });
     try {
       await vkAssertMessagesPermission(token);
@@ -241,7 +241,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
     const u = requireUser(req, res); if (!u) return true;
     const id = path.split('/')[3];
     const acc = load().accounts.find((a) => a.id === id && a.userId === u.id);
-    if (!acc) { send(res, 404, { error: 'РќРµС‚ Р°РєРєР°СѓРЅС‚Р°' }); return true; }
+    if (!acc) { send(res, 404, { error: 'Нет аккаунта' }); return true; }
     if (String(acc.tokenEnc).startsWith('mock:')) { send(res, 200, { accessToken: acc.tokenEnc }); return true; }
     try {
       const accessToken = decryptToken(acc.tokenEnc, process.env.TOKEN_ENCRYPTION_KEY);
@@ -257,9 +257,9 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
     const id = path.split('/')[3];
     const body = await readBody(req);
     const incoming = normalizeChannels(body.channels);
-    if (!incoming.length) { send(res, 400, { error: 'РќРµС‚ РєР°РЅР°Р»РѕРІ' }); return true; }
+    if (!incoming.length) { send(res, 400, { error: 'Нет каналов' }); return true; }
     const acc = load().accounts.find((a) => a.id === id && a.userId === u.id);
-    if (!acc) { send(res, 404, { error: 'РќРµС‚ Р°РєРєР°СѓРЅС‚Р°' }); return true; }
+    if (!acc) { send(res, 404, { error: 'Нет аккаунта' }); return true; }
     const channels = mergeChannels(acc.channels || [], incoming);
     mutate((d) => {
       const a = d.accounts.find((x) => x.id === id && x.userId === u.id);
@@ -272,7 +272,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
           at: new Date().toISOString(),
           level: 'info',
           userId: u.id,
-          message: `РћР±РЅРѕРІР»РµРЅС‹ РєР°РЅР°Р»С‹ VK ${a.name} В· РіСЂСѓРїРї ${groupsCount}`,
+          message: `Обновлены каналы VK ${a.name} · групп ${groupsCount}`,
         });
       }
     });
@@ -284,7 +284,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
     const u = requireUser(req, res); if (!u) return true;
     const id = path.split('/')[3];
     const acc = load().accounts.find((a) => a.id === id && a.userId === u.id);
-    if (!acc) { send(res, 404, { error: 'РќРµС‚ Р°РєРєР°СѓРЅС‚Р°' }); return true; }
+    if (!acc) { send(res, 404, { error: 'Нет аккаунта' }); return true; }
     const token = String(acc.tokenEnc).startsWith('mock:') ? acc.tokenEnc : decryptToken(acc.tokenEnc, process.env.TOKEN_ENCRYPTION_KEY);
     try {
       const channels = await vkListChannels(token);
@@ -298,7 +298,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
       const msg = err instanceof Error ? err.message : String(err);
       if (/another ip|1130|РїСЂРёРІСЏР·Р°РЅ Рє IP/i.test(msg)) {
         send(res, 409, {
-          error: 'РўРѕРєРµРЅ РїСЂРёРІСЏР·Р°РЅ Рє IP Р±СЂР°СѓР·РµСЂР°. РќР°Р¶РјРёС‚Рµ В«РћР±РЅРѕРІРёС‚СЊ СЃРѕРѕР±С‰РµСЃС‚РІР°В» РІ РєР°Р±РёРЅРµС‚Рµ вЂ” СЃРїРёСЃРѕРє РїРѕРґС‚СЏРЅРµС‚СЃСЏ РёР· VK РІ СЌС‚РѕРј Р±СЂР°СѓР·РµСЂРµ.',
+          error: 'Токен привязан к IP браузера. Нажмите «Обновить сообщества» в кабинете — список подтянется из VK в этом браузере.',
           ipBound: true,
           channels: acc.channels || [],
         });
@@ -311,7 +311,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
   if (method === 'GET' && path === '/api/vk/friends') {
     const u = requireUser(req, res); if (!u) return true;
     const acc = resolveVkAccount(u, url.searchParams.get('accountId'));
-    if (!acc) { send(res, 400, { error: 'РќРµС‚ VK' }); return true; }
+    if (!acc) { send(res, 400, { error: 'Нет VK' }); return true; }
     const friends = await vkGetFriends(tokenOf(acc), { count: 80 });
     send(res, 200, friends);
   }
@@ -319,7 +319,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
   if (method === 'GET' && path === '/api/vk/chats') {
     const u = requireUser(req, res); if (!u) return true;
     const acc = resolveVkAccount(u, url.searchParams.get('accountId'));
-    if (!acc) { send(res, 400, { error: 'РќРµС‚ VK' }); return true; }
+    if (!acc) { send(res, 400, { error: 'Нет VK' }); return true; }
     send(res, 200, await vkConversations(tokenOf(acc, { messages: true }) || tokenOf(acc), 30));
   }
 
@@ -327,20 +327,20 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
     const u = requireUser(req, res); if (!u) return true;
     const body = await readBody(req);
     const acc = resolveVkAccount(u, body.accountId);
-    if (!acc) { send(res, 400, { error: 'РќРµС‚ VK' }); return true; }
+    if (!acc) { send(res, 400, { error: 'Нет VK' }); return true; }
     const peerId = Number(body.peerId);
     const message = String(body.message || '').trim();
-    if (!peerId || !message) { send(res, 400, { error: 'РЈРєР°Р¶РёС‚Рµ peerId Рё С‚РµРєСЃС‚' }); return true; }
+    if (!peerId || !message) { send(res, 400, { error: 'Укажите peerId и текст' }); return true; }
     const token = tokenOf(acc, { messages: true }) || tokenOf(acc);
     const r = await vkSendMessage(token, peerId, message.slice(0, 3500));
-    if (!r.ok) { send(res, 400, { error: r.message || 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ' }); return true; }
+    if (!r.ok) { send(res, 400, { error: r.message || 'Не удалось отправить' }); return true; }
     send(res, 200, { ok: true, messageId: r.messageId });
   }
 
   if (method === 'GET' && path === '/api/vk/groups') {
     const u = requireUser(req, res); if (!u) return true;
     const acc = resolveVkAccount(u, url.searchParams.get('accountId'));
-    if (!acc) { send(res, 400, { error: 'РќРµС‚ VK' }); return true; }
+    if (!acc) { send(res, 400, { error: 'Нет VK' }); return true; }
     const groups = await vkListManagedGroups(tokenOf(acc));
     send(res, 200, groups);
   }
@@ -348,9 +348,9 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
   if (method === 'GET' && path === '/api/vk/groups/requests') {
     const u = requireUser(req, res); if (!u) return true;
     const acc = resolveVkAccount(u, url.searchParams.get('accountId'));
-    if (!acc) { send(res, 400, { error: 'РќРµС‚ VK' }); return true; }
+    if (!acc) { send(res, 400, { error: 'Нет VK' }); return true; }
     const groupId = Number(url.searchParams.get('groupId'));
-    if (!groupId) { send(res, 400, { error: 'РЈРєР°Р¶РёС‚Рµ groupId' }); return true; }
+    if (!groupId) { send(res, 400, { error: 'Укажите groupId' }); return true; }
     const reqs = await vkGetGroupJoinRequests(tokenOf(acc), groupId);
     send(res, 200, reqs);
   }
@@ -359,7 +359,7 @@ if (method === 'GET' && path === '/api/vk/oauth-url') {
     const u = requireUser(req, res); if (!u) return true;
     const body = await readBody(req);
     const acc = resolveVkAccount(u, body.accountId);
-    if (!acc) { send(res, 400, { error: 'РќРµС‚ VK' }); return true; }
+    if (!acc) { send(res, 400, { error: 'Нет VK' }); return true; }
     const token = tokenOf(acc);
     if (body.action === 'approve') await vkApproveJoinRequest(token, body.groupId, body.userId);
     else await vkDenyJoinRequest(token, body.groupId, body.userId);

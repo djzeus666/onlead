@@ -12,7 +12,7 @@ if (method === 'POST' && path === '/api/parsers') {
     const u = requireUser(req, res); if (!u) return true;
     const body = await readBody(req);
     const slug = body.kind === 'groups' ? 'parsing-groups-vk' : 'parsing-accounts-vk';
-    if (!toolOn(u, slug, load().settings)) send(res, 403, { error: 'РџР°СЂСЃРµСЂ РЅРµ Р°РєС‚РёРІРµРЅ' });
+    if (!toolOn(u, slug, load().settings)) send(res, 403, { error: 'Парсер не активен' });
     try {
       const list = await runParser(u.id, body.kind || 'accounts', body);
       send(res, 200, { ...list, items: undefined, count: list.count || list.items?.length || 0, id: list.id, name: list.name });
@@ -26,7 +26,7 @@ if (method === 'POST' && path === '/api/parsers') {
     const u = requireUser(req, res); if (!u) return true;
     const id = path.split('/')[3];
     const list = load().lists.find((l) => l.id === id && (!l.userId || l.userId === u.id));
-    if (!list) { send(res, 404, { error: 'РЎРїРёСЃРѕРє РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!list) { send(res, 404, { error: 'Список не найден' }); return true; }
     send(res, 200, { ...list, count: list.count || list.items?.length || 0, items: (list.items || []).slice(0, 1000) });
   }
 
@@ -43,14 +43,14 @@ if (method === 'POST' && path === '/api/parsers') {
     const id = path.split('/').pop();
     const body = await readBody(req);
     const name = String(body.name || '').trim().slice(0, 80);
-    if (!name) { send(res, 400, { error: 'РЈРєР°Р¶РёС‚Рµ РЅР°Р·РІР°РЅРёРµ' }); return true; }
+    if (!name) { send(res, 400, { error: 'Укажите название' }); return true; }
     const list = mutate((d) => {
       const l = d.lists.find((x) => x.id === id && (!x.userId || x.userId === u.id));
       if (!l) return null;
       l.name = name;
       return l;
     });
-    if (!list) { send(res, 404, { error: 'РЎРїРёСЃРѕРє РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!list) { send(res, 404, { error: 'Список не найден' }); return true; }
     send(res, 200, { ok: true, name: list.name });
   }
 
@@ -58,15 +58,15 @@ if (method === 'POST' && path === '/api/parsers') {
     const u = requireUser(req, res); if (!u) return true;
     const id = path.split('/')[3];
     const list = load().lists.find((l) => l.id === id && (!l.userId || l.userId === u.id));
-    if (!list) { send(res, 404, { error: 'РЎРїРёСЃРѕРє РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!list) { send(res, 404, { error: 'Список не найден' }); return true; }
     let n = 0;
     mutate((d) => {
       for (const p of (list.items || []).slice(0, 200)) {
         const name = [p.firstName, p.lastName].filter(Boolean).join(' ') || ('id' + p.id);
         d.leads.unshift({
           id: 'c' + Date.now() + Math.random().toString(16).slice(2),
-          userId: u.id, name, source: list.name || 'РЎРїРёСЃРѕРє', score: 5,
-          stage: 'new', city: p.cityTitle || 'вЂ”', note: '', vkId: p.id,
+          userId: u.id, name, source: list.name || 'Список', score: 5,
+          stage: 'new', city: p.cityTitle || '—', note: '', vkId: p.id,
         });
         n += 1;
       }
@@ -85,9 +85,9 @@ if (method === 'POST' && path === '/api/parsers') {
     const body = await readBody(req);
     const lead = mutate((d) => {
       const l = {
-        id: 'c' + Date.now(), userId: u.id, name: body.name || 'РќРѕРІС‹Р№ РєРѕРЅС‚Р°РєС‚',
-        source: body.source || 'Р’СЂСѓС‡РЅСѓСЋ', score: Number(body.score || 5),
-        stage: normalizeLeadStage(body.stage || 'new'), city: body.city || 'вЂ”', note: body.note || '',
+        id: 'c' + Date.now(), userId: u.id, name: body.name || 'Новый контакт',
+        source: body.source || 'Вручную', score: Number(body.score || 5),
+        stage: normalizeLeadStage(body.stage || 'new'), city: body.city || '—', note: body.note || '',
         assigneeUserId: body.assigneeUserId || null,
       };
       d.leads.unshift(l);
@@ -106,7 +106,7 @@ if (method === 'POST' && path === '/api/parsers') {
       if (!l) return null;
       if (body.name != null) l.name = String(body.name).trim().slice(0, 80) || l.name;
       if (body.note != null) l.note = String(body.note).trim().slice(0, 500);
-      if (body.city != null) l.city = String(body.city).trim().slice(0, 80) || 'вЂ”';
+      if (body.city != null) l.city = String(body.city).trim().slice(0, 80) || '—';
       if (body.phone != null) l.phone = String(body.phone).trim().slice(0, 40);
       if (body.stage) {
         const st = normalizeLeadStage(body.stage);
@@ -118,7 +118,7 @@ if (method === 'POST' && path === '/api/parsers') {
       if (body.archived === true || body.archived === false) l.archived = !!body.archived;
       return l;
     });
-    if (!lead) { send(res, 404, { error: 'Р›РёРґ РЅРµ РЅР°Р№РґРµРЅ' }); return true; }
+    if (!lead) { send(res, 404, { error: 'Лид не найден' }); return true; }
     send(res, 200, { ok: true, lead: normalizeLead(lead) });
   }
 

@@ -83,10 +83,10 @@ if (path === '/api/leadgen' && method === 'GET') {
 
   if (method === 'POST' && path === '/api/leadgen/scan') {
     const u = requireUser(req, res); if (!u) return true;
-    if (!toolOn(u, 'leadgen-vk', load().settings)) send(res, 403, { error: 'Р›РёРґРѕРіРµРЅРµСЂР°С‚РѕСЂ РЅРµ Р°РєС‚РёРІРµРЅ' });
+    if (!toolOn(u, 'leadgen-vk', load().settings)) send(res, 403, { error: 'Лидогенератор не активен' });
     const cfg = getLeadgenConfig(u.id);
-    if (!cfg.phrases?.length) { send(res, 400, { error: 'Р”РѕР±Р°РІСЊС‚Рµ РїРѕРёСЃРєРѕРІС‹Рµ С„СЂР°Р·С‹' }); return true; }
-    if (!cfg.groups?.length) { send(res, 400, { error: 'Р’С‹Р±РµСЂРёС‚Рµ СЃРѕРѕР±С‰РµСЃС‚РІР° РґР»СЏ СЃРєР°РЅР°' }); return true; }
+    if (!cfg.phrases?.length) { send(res, 400, { error: 'Добавьте поисковые фразы' }); return true; }
+    if (!cfg.groups?.length) { send(res, 400, { error: 'Выберите сообщества для скана' }); return true; }
     if (cfg.scanStatus === 'running') { send(res, 200, { queued: true, ...publicLeadgen(cfg, u.id) }); return true; }
     mutate((d) => {
       const c = d.leadgen.find((x) => x.userId === u.id);
@@ -158,7 +158,7 @@ if (path === '/api/leadgen' && method === 'GET') {
       if (body.notes != null) m.note = String(body.notes);
       return m;
     });
-    if (!match) { send(res, 404, { error: 'РќРµС‚ СЃРѕРІРїР°РґРµРЅРёСЏ' }); return true; }
+    if (!match) { send(res, 404, { error: 'Нет совпадения' }); return true; }
     send(res, 200, match);
   }
 

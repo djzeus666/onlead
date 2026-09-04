@@ -35,7 +35,7 @@ if (path === '/api/neurocomments' && method === 'GET') {
 
   if (method === 'POST' && path === '/api/neurocomments/discover') {
     const u = requireUser(req, res); if (!u) return true;
-    if (!toolOn(u, 'neurocomment-vk', load().settings)) send(res, 403, { error: 'РќРµР№СЂРѕРєРѕРјРјРµРЅС‚Р°СЂРёРё РЅРµ Р°РєС‚РёРІРЅС‹' });
+    if (!toolOn(u, 'neurocomment-vk', load().settings)) send(res, 403, { error: 'Нейрокомментарии не активны' });
     try {
       const r = await runNeuroDiscover(u.id);
       send(res, 200, { ...r, tasks: listNeuroTasks(u.id), stats: neuroStats(u.id) });
@@ -126,7 +126,7 @@ if (path === '/api/neurocomments' && method === 'GET') {
 
   if (method === 'POST' && path === '/api/ai-lead/run') {
     const u = requireUser(req, res); if (!u) return true;
-    if (!toolOn(u, 'ai-lead-vk', load().settings)) send(res, 403, { error: 'AI Р›РёРґ-РјРµРЅРµРґР¶РµСЂ РЅРµ Р°РєС‚РёРІРµРЅ' });
+    if (!toolOn(u, 'ai-lead-vk', load().settings)) send(res, 403, { error: 'AI Лид-менеджер не активен' });
     try {
       const r = await runAiLeadBatch(u.id);
       send(res, 200, {
