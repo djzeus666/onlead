@@ -49,6 +49,7 @@ OnLead.icon = icon;
 function brandLogo(href, extra = "") {
   return `<a class="logo ${extra}" href="${href}"><span class="logo-mark" aria-hidden="true"></span> OnLead<span class="logo-dot">.</span></a>`;
 }
+OnLead.brandLogo = brandLogo;
 
 async function onOfficeChange(e) {
   const alSource = e.target.closest('input[name="al-source"]');
