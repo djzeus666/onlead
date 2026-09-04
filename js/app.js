@@ -116,7 +116,7 @@ OnLead.mount = function () {
     history.replaceState({}, "", `${location.pathname}#/office/balance`);
   }
   window.addEventListener("hashchange", render);
-  window.addEventListener("message", onVkOAuthMessage);
+  window.addEventListener("message", OnLead.onVkOAuthMessage);
   document.addEventListener("click", (e) => {
     const menu = document.querySelector("details.pub-menu[open]");
     if (!menu) return;
