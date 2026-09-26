@@ -181,17 +181,22 @@ OnLead.dashboardOlPage = function dashboardOlPage(state, opts = {}) {
     ${onboarding}
     <div class="dash-hero card">
       <div class="dash-hero-main">
-        <p class="dash-kicker">Личный кабинет · ${esc(date)}</p>
-        <h1>${esc(first)}, добро пожаловать</h1>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+          <span class="pulse-dot"></span>
+          <p class="dash-kicker" style="margin:0">Центр управления продажами VK & Telegram · ${esc(date)}</p>
+          <span class="badge-selling">SMM · SMB · AGENCIES</span>
+        </div>
+        <h1>${esc(first)}, заглянем в актуальный поток лидов</h1>
         <p class="muted">${esc(next.note)}</p>
         <div class="dash-hero-acts">
           <a class="btn btn-primary" href="${esc(next.href)}">${esc(next.title)}</a>
+          <a class="btn btn-ghost" href="#/office/tools/leadgen-vk">Запустить Лидоскоп</a>
           <a class="btn btn-ghost" href="#/office/compose">Создать пост</a>
         </div>
       </div>
       <div class="dash-hero-aside">
         <span class="chip ${OnLead.packageActive && OnLead.packageActive(state) ? "chip-ok" : ""}">${esc(planBadge)}</span>
-        <a class="btn btn-ghost btn-sm" href="#/office/subscriptions">Сменить тариф</a>
+        <a class="btn btn-primary btn-sm" style="margin-top:4px" href="#/office/subscriptions">Продлить доступ со скидкой</a>
       </div>
     </div>
 

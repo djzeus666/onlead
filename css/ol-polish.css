@@ -323,3 +323,115 @@
     flex: 1 1 calc(50% - 4px);
   }
 }
+
+/* ── Selling Market Conversion UI Enhancements ── */
+
+.badge-selling {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  background: rgba(61, 255, 168, 0.14);
+  color: #0b8053;
+  border: 1px solid rgba(61, 255, 168, 0.35);
+  box-shadow: 0 0 12px rgba(61, 255, 168, 0.15);
+}
+
+.badge-roi {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255, 77, 46, 0.12);
+  color: var(--teal-2);
+  border: 1px solid rgba(255, 77, 46, 0.25);
+}
+
+.audience-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 18px;
+}
+
+.audience-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: rgba(15, 14, 12, 0.04);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  transition: all 0.2s ease;
+}
+
+.audience-pill:hover,
+.audience-pill.active {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+.selling-proof-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.selling-proof-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.selling-proof-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+}
+
+.selling-proof-card .stat-val {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--teal);
+  letter-spacing: -0.03em;
+}
+
+.selling-proof-card .stat-label {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mint);
+  box-shadow: 0 0 8px var(--mint);
+  animation: signal-pulse 2s infinite;
+}
+
+/* Tariff & Conversion Highlights */
+.tariff-segment-tag {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--teal);
+  margin-bottom: 6px;
+}

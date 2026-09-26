@@ -388,6 +388,7 @@ OnLead.tplCard = function tplCard(t) {
     <div class="tpl-card-body">
       <div class="tpl-card-tags">
         <span class="chip">${OnLead.esc(t.niche)}</span>
+        <span class="badge-selling" style="font-size:9px;padding:2px 6px">High-CVR</span>
         ${t.tier === "pro" ? `<span class="chip chip-gold">PRO</span>` : `<span class="chip">Бесплатный</span>`}
         ${t.badge ? `<span class="chip chip-gold">${OnLead.esc(t.badge)}</span>` : ""}
       </div>
@@ -395,7 +396,7 @@ OnLead.tplCard = function tplCard(t) {
       <p>${OnLead.esc(t.blurb || t.sub || "")}</p>
       <div class="tpl-card-acts">
         <a class="btn btn-ghost btn-sm" href="#/office/landings/templates/${OnLead.esc(t.id)}">Посмотреть</a>
-        <button type="button" class="btn btn-primary btn-sm" data-act="new-landing" data-name="${OnLead.esc(t.name)}" data-template="${OnLead.esc(t.id)}">Использовать</button>
+        <button type="button" class="btn btn-primary btn-sm" data-act="new-landing" data-name="${OnLead.esc(t.name)}" data-template="${OnLead.esc(t.id)}">Создать страницу</button>
       </div>
     </div>
   </article>`;

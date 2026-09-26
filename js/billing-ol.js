@@ -122,14 +122,16 @@ OnLead.billingOlPage = function billingOlPage(state) {
       const per = months > 1 ? `<div class="muted bill-plan-per">${p.price} ₽/мес · экономия ${Math.round(p.price * months - price)} ₽</div>` : "";
       const active = state.packageId === p.id && packActive;
       const toolCount = (p.tools || []).length;
+      const segTag = p.id === "mini" ? "Фрилансерам & SMM" : (p.id === "maxi" ? "СМБ & Малому бизнесу" : "B2B & Digital Агентствам");
       return `<article class="card bill-plan-card ${active ? "on" : ""}">
+        <span class="tariff-segment-tag">${segTag}</span>
         <span class="chip">${esc(p.badge)}</span>
         <h3>${esc(p.name)}</h3>
         <div class="bill-plan-price">${price.toLocaleString("ru-RU")} ₽</div>
         ${per}
         <p class="muted">${esc(p.hint)}</p>
         <p class="muted bill-plan-tools">${toolCount} инструментов в пакете</p>
-        <button class="btn ${active ? "btn-ghost" : "btn-primary"} btn-block" type="button" data-act="buy-pack" data-id="${p.id}" data-m="${months}" data-amount="${price}">${active ? "Продлить" : "Выбрать тариф"}</button>
+        <button class="btn ${active ? "btn-ghost" : "btn-primary"} btn-block" type="button" data-act="buy-pack" data-id="${p.id}" data-m="${months}" data-amount="${price}">${active ? "Продлить" : "Подключить " + esc(p.name)}</button>
         ${active ? `<p class="muted" style="margin:8px 0 0;font-size:12px;text-align:center">Тариф уже активен — кнопка продлевает срок</p>` : `<p class="muted" style="margin:8px 0 0;font-size:12px;text-align:center">${toolCount} инструментов · ${months === 1 ? "1 месяц" : months + " мес."}</p>`}
       </article>`;
     }).join("")}</div>
