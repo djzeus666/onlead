@@ -303,6 +303,44 @@ export function transferRefBalance(d, userId, amount) {
   return { moved: move, balance: x.balance, refBalance: x.refBalance };
 }
 
+/** Generates or retrieves unique affiliate referral code for a user. */
+export function getOrCreateReferralCode(user) {
+  if (!user) return 'REF-GUEST';
+  if (user.referralCode) return user.referralCode;
+  const hash = String(user.id || 'u').replace(/[^a-z0-9]/gi, '').slice(-6) || '1001';
+  user.referralCode = `REF-${hash.toUpperCase()}`;
+  return user.referralCode;
+}
+
+/** Links a newly registered user to an inviter using their referral code. */
+export function linkReferralUser(d, targetUser, refCode) {
+  const code = String(refCode || '').trim().toUpperCase();
+  if (!code || !targetUser) return { ok: false, reason: 'missing parameters' };
+  if (targetUser.referredBy) return { ok: false, reason: 'already linked' };
+
+  const inviter = (d.users || []).find((u) => getOrCreateReferralCode(u) === code);
+  if (!inviter || inviter.id === targetUser.id) return { ok: false, reason: 'invalid code' };
+
+  targetUser.referredBy = inviter.id;
+  inviter.referral = inviter.referral || { invited: 0, paying: 0, earned: 0, code };
+  inviter.referral.invited = (inviter.referral.invited || 0) + 1;
+  return { ok: true, inviterId: inviter.id };
+}
+
+/** Returns affiliate stats and referral link details. */
+export function getReferralStats(user) {
+  const code = getOrCreateReferralCode(user);
+  const stats = user?.referral || { invited: 0, paying: 0, earned: 0 };
+  return {
+    code,
+    invited: stats.invited || 0,
+    paying: stats.paying || 0,
+    earned: stats.earned || 0,
+    refBalance: user?.refBalance || 0,
+    percent: 15,
+  };
+}
+
 export async function createCheckout(user, body, origin) {
   const quote = quoteCheckout(body);
   const method = String(body.method || body.pay || 'yookassa').toLowerCase();

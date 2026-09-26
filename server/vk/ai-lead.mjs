@@ -1,7 +1,7 @@
 /** AI Лид-менеджер: follow-up turns in VK DM after the opener. */
 import { vkCall, isMock } from './call.mjs';
 import { vkSendMessage } from './growth.mjs';
-import { generateLeadReply, scoreLead } from '../ai.mjs';
+import { generateLeadReply, scoreLead, multiIntentLeadScore } from '../ai.mjs';
 
 export const MAX_DIALOG_TURNS = 12;
 export const MAX_ACTIVE_DIALOGS = 80;
@@ -54,23 +54,24 @@ export function historyTranscript(history, limit = 12) {
 export function syncCrmLead(d, userId, dialog, replyText, score, scoreReason, threshold) {
   const vkId = Number(dialog.vkId);
   if (!vkId) return;
+  const multiIntent = multiIntentLeadScore({ reply: replyText });
+  const effectiveScore = score || multiIntent.score;
   const lead = (d.leads || []).find((l) => l.userId === userId && Number(l.vkId) === vkId);
-  const note = `${scoreReason || ''}${scoreReason ? ' · ' : ''}${replyText.slice(0, 100)}`.trim();
+  const note = `${scoreReason || ''}${scoreReason ? ' · ' : ''}${replyText.slice(0, 100)} [${multiIntent.intent}]`.trim();
   if (lead) {
-    lead.score = score;
-    if (lead.stage === 'new') lead.stage = 'contacted';
-    if (score >= 8) lead.stage = 'qualified';
+    lead.score = effectiveScore;
+    lead.stage = multiIntent.recommendedStage || (effectiveScore >= 8 ? 'qualified' : 'contacted');
     lead.note = note;
     return;
   }
-  if (score < threshold) return;
+  if (effectiveScore < threshold) return;
   d.leads.unshift({
     id: 'c' + Date.now(),
     userId,
     name: dialog.name || `id${vkId}`,
     source: 'AI Лид-менеджер',
-    score,
-    stage: score >= 8 ? 'qualified' : 'contacted',
+    score: effectiveScore,
+    stage: multiIntent.recommendedStage || (effectiveScore >= 8 ? 'qualified' : 'contacted'),
     city: '—',
     note,
     vkId,

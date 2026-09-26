@@ -290,6 +290,77 @@ export async function generateLeadReply({ person, offer, style, history }, confi
   return cleanOneLiner(text, 400);
 }
 
+/** RAG Knowledge Base lookup for business facts and FAQs. */
+export function searchKnowledgeBase(kbItems = [], query = '') {
+  const q = String(query || '').toLowerCase().trim();
+  if (!q || !Array.isArray(kbItems) || !kbItems.length) return [];
+  const tokens = q.split(/[^\p{L}\d]+/u).filter((t) => t.length > 1);
+  if (!tokens.length) return [];
+
+  return kbItems
+    .map((item) => {
+      const docText = `${item.title || ''} ${item.content || ''} ${item.tags || ''}`.toLowerCase();
+      let matches = 0;
+      for (const t of tokens) {
+        if (docText.includes(t)) matches += 1;
+      }
+      return { item, score: matches / tokens.length };
+    })
+    .filter((res) => res.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((res) => res.item)
+    .slice(0, 3);
+}
+
+/** Classifies user message intent for automated CRM routing. */
+export function classifyLeadIntent(text = '') {
+  const t = String(text || '').toLowerCase().trim();
+  if (!t) return 'general';
+  if (/скольк|цена|стоим|прайс|тариф|оплат|скидк|руб/i.test(t)) return 'pricing';
+  if (/как работа|функц|умеет|возможн|интеграц|подключ/i.test(t)) return 'features';
+  if (/готупил|хочу|купить|подключите|оформ|беру|готовы/i.test(t)) return 'buy_now';
+  if (/дорого|сомнев|гарант|подум|не верю/i.test(t)) return 'objection';
+  if (/ошибк|не работа|помощ|поддержк/i.test(t)) return 'support';
+  return 'general';
+}
+
+/** Multi-intent Lead Scoring calculation (1-10 scale + Hot/Warm/Cold classification). */
+export function multiIntentLeadScore({ history = [], reply = '', sourceHint = '' }) {
+  const intent = classifyLeadIntent(reply);
+  let score = 5;
+
+  if (intent === 'buy_now') score += 4;
+  else if (intent === 'pricing') score += 2;
+  else if (intent === 'features') score += 1;
+  else if (intent === 'objection') score -= 1;
+
+  if (history.length > 4) score += 1;
+  if (reply.length > 50) score += 1;
+
+  const finalScore = Math.max(1, Math.min(10, score));
+  let level = 'Cold';
+  let recommendedStage = 'new';
+
+  if (finalScore >= 8) {
+    level = 'Hot';
+    recommendedStage = 'won';
+  } else if (finalScore >= 5) {
+    level = 'Warm';
+    recommendedStage = 'qualified';
+  } else {
+    level = 'Cold';
+    recommendedStage = 'contacted';
+  }
+
+  return {
+    score: finalScore,
+    intent,
+    level,
+    recommendedStage,
+    reasoning: `Intent: ${intent}, History Turns: ${history.length}, Score: ${finalScore}/10 (${level})`,
+  };
+}
+
 /** Lead scoring 1-10 for the CRM threshold of the AI Лид-менеджер. */
 export async function scoreLead({ person, offer, sourceHint, reply }, config) {
   const { system, user } = buildLeadScorePrompt({ person, offer, sourceHint, reply });

@@ -61,3 +61,38 @@ export function replaceGrabberLinks(text, replaceUrl) {
   }
   return stripped ? `${stripped}\n\n${url}`.slice(0, 3800) : url.slice(0, 3800);
 }
+
+/**
+ * Extracts commercial buyer intent signals from posts or comments.
+ */
+export function extractBuyerIntent(text = '') {
+  const raw = String(text || '').toLowerCase();
+  const intentKeywords = ['цена', 'стоимость', 'прайс', 'купить', 'в наличии', 'заказать', 'как купить', 'доставка', 'где находится', 'скидка'];
+  const matched = intentKeywords.filter((k) => raw.includes(k));
+  const isBuyer = matched.length > 0;
+  return {
+    isBuyer,
+    matchedKeywords: matched,
+    confidenceScore: Math.min(100, matched.length * 35),
+  };
+}
+
+/**
+ * Prepares prompt parameters for AI post rewriting into a target tone-of-voice.
+ */
+export function buildAiPostRewritePrompt(text = '', tone = 'expert', replaceUrl = '') {
+  const cleanText = stripSourceLinks(text);
+  const tones = {
+    expert: 'Экспертный, убедительный, профессиональный с упором на пользу для клиента.',
+    selling: 'Продающий, вовлекающий, с сильным призывом к действию (CTA).',
+    friendly: 'Дружелюбный, доверительный, с юмором и легкой подачей.',
+  };
+
+  const selectedTone = tones[tone] || tones.expert;
+  const cta = replaceUrl ? ` В конце добавь ссылку для подробностей: ${replaceUrl}` : '';
+
+  return {
+    system: 'Ты — профессиональный копирайтер и SMM-специалист. Перепиши данный пост, сделав его уникальным, структурированным и легко читаемым.',
+    user: `Стиль подачи: ${selectedTone}\n\nТекст для рерайта:\n"${cleanText}"${cta}`,
+  };
+}

@@ -4,6 +4,8 @@ import {
   applyQuote,
   creditBalance,
   fulfillYookassaPayment,
+  getReferralStats,
+  linkReferralUser,
   parseYookassaWebhook,
   payWithBalance,
   quoteCheckout,
@@ -184,6 +186,19 @@ test('transferRefBalance moves funds to main balance', () => {
   assert.equal(r.moved, 120);
   assert.equal(d.users[0].balance, 170);
   assert.equal(d.users[0].refBalance, 0);
+});
+
+test('referral code generation, linking and stats', () => {
+  const d = store();
+  d.users.push({ id: 'u2', email: 'u2@example.com', balance: 0 });
+
+  const linkRes = linkReferralUser(d, d.users[1], 'X');
+  assert.equal(linkRes.ok, true);
+  assert.equal(d.users[1].referredBy, 'u1');
+
+  const stats = getReferralStats(d.users[0]);
+  assert.equal(stats.invited, 1);
+  assert.equal(stats.percent, 15);
 });
 
 test('applyQuote extends packageUntil for multi-month packages', () => {

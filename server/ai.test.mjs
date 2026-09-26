@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  aiTimeoutMs, applyAiSettings, chatModelChain, humanizeAiError, isModelExhausted, looksLikeChainOfThought,
-  looksLikeImageModel, publicAiSettings, readAiConfig,
+  aiTimeoutMs, applyAiSettings, chatModelChain, classifyLeadIntent, humanizeAiError, isModelExhausted, looksLikeChainOfThought,
+  looksLikeImageModel, multiIntentLeadScore, publicAiSettings, readAiConfig, searchKnowledgeBase,
 } from './ai.mjs';
 
 test('image models are told apart from chat models', () => {
@@ -104,4 +104,19 @@ test('leaked chain of thought never reaches a VK comment', () => {
   assert.equal(looksLikeChainOfThought('Согласен, у нас так же вышло прошлой зимой.'), false);
   assert.equal(looksLikeChainOfThought('Стойки за 2 часа — это ещё быстро, по цене норм.'), false);
   assert.equal(looksLikeChainOfThought(''), false);
+});
+
+test('searchKnowledgeBase and multiIntentLeadScore functions', () => {
+  const kb = [
+    { title: 'Цены на подписку', content: 'Тариф Бизнес стоит 390 рублей' },
+    { title: 'VK Интеграция', content: 'Поддержка автопостинга и сторис' },
+  ];
+  const found = searchKnowledgeBase(kb, 'сколько стоит бизнес');
+  assert.equal(found.length, 1);
+  assert.equal(found[0].title, 'Цены на подписку');
+
+  assert.equal(classifyLeadIntent('какая цена у вас?'), 'pricing');
+  const scoreResult = multiIntentLeadScore({ reply: 'Хочу купить ваш тариф', history: [1, 2, 3, 4, 5] });
+  assert.equal(scoreResult.level, 'Hot');
+  assert.equal(scoreResult.recommendedStage, 'won');
 });
