@@ -20,23 +20,25 @@ OnLead.landingPage = function landingPage() {
     ["Лид", "Вы подключаетесь, когда человек уже готов."],
   ];
   return `
-  <div class="sf-banner">НОВЫЙ РЕЖИМ · AI-ЛИД-МЕНЕДЖЕР УЖЕ В ONLEAD · <a href="${origin}/#/register">Смотреть, как работает →</a></div>
+  <div class="sf-banner">⚡ PROD-READY · АВТОМАТИЗАЦИЯ ЛИДОГЕНЕРАЦИИ VK & TELEGRAM · <a href="${origin}/#/register">Запустить тест 72 часа бесплатно →</a></div>
   <header class="pub-head">
     <div class="inner">
       ${OnLead.brandLogo(origin + "/#/")}
       <nav class="nav-pub">
         <a href="${origin}/#system">Система</a>
+        <a href="${origin}/#audiences">Для кого</a>
         <a href="${origin}/#tools">Инструменты</a>
         <a href="${origin}/#prices">Тарифы</a>
         <a href="${origin}/#faq">Вопросы</a>
       </nav>
       <div class="head-actions">
         <a class="btn btn-ghost btn-sm pub-login" href="${origin}/#/login">Войти</a>
-        <a class="btn btn-primary btn-sm" href="${origin}/#/register">Открыть кабинет</a>
+        <a class="btn btn-primary btn-sm" href="${origin}/#/register">Попробовать 72 часа</a>
         <details class="pub-menu">
           <summary class="pub-burger" aria-label="Меню">${OnLead.icon("menu")}</summary>
           <nav class="pub-sheet">
             <a href="${origin}/#system">Система</a>
+            <a href="${origin}/#audiences">Для кого</a>
             <a href="${origin}/#tools">Инструменты</a>
             <a href="${origin}/#prices">Тарифы</a>
             <a href="${origin}/#faq">Вопросы</a>
@@ -50,17 +52,24 @@ OnLead.landingPage = function landingPage() {
   <section class="hero" id="top">
     <div class="wrap hero-grid">
       <div>
-        <div class="sf-kicker"><i></i> SIGNAL FIELD / 2026</div>
-        <h1>Сигналы,<br><span class="accent">которые</span><br>становятся<br>лидами<span class="amp">.</span></h1>
-        <p class="lead">OnLead собирает аудиторию из VK, ведёт диалог и показывает момент, когда пора подключаться вам.</p>
+        <div class="sf-kicker"><span class="pulse-dot"></span> PLATFORM FOR SMM, SMB & AGENCIES</div>
+        <h1>Увеличьте поток<br><span class="accent">лидов из VK</span><br>в 3 раза<span class="amp">.</span></h1>
+        <p class="lead">Платформа автоматических продаж и AI-диалогов для SMM-специалистов, малого бизнеса и B2B-агентств. Собирает горячие сигналы, ведет квалификацию и передаёт готовых клиентов.</p>
+
+        <div class="audience-pills">
+          <span class="audience-pill active">🎯 SMM & Таргетологи</span>
+          <span class="audience-pill active">🏢 Малый & Средний Бизнес</span>
+          <span class="audience-pill active">🚀 B2B & Digital-Агентства</span>
+        </div>
+
         <div class="hero-cta">
-          <a class="btn btn-primary" href="${origin}/#/register">Начать за 5 минут</a>
-          <a class="sf-play" href="${origin}/#system"><span>${OnLead.icon("spark")}</span> Посмотреть систему</a>
+          <a class="btn btn-primary" href="${origin}/#/register">Тестировать 72 часа бесплатно</a>
+          <a class="sf-play" href="${origin}/#system"><span>${OnLead.icon("spark")}</span> Демо работы AI</a>
         </div>
         <div class="stats-row">
-          <div><b>67 721</b><br><span class="muted">пользователей</span></div>
-          <div><b>4,9 / 5</b><br><span class="muted">средняя оценка</span></div>
-          <div><b>+23,4%</b><br><span class="muted">конверсия в диалог</span></div>
+          <div><b>67 721+</b><br><span class="muted">активных пользователей</span></div>
+          <div><b>4.9 / 5</b><br><span class="muted">оценка эффективности</span></div>
+          <div><b>+35.2%</b><br><span class="muted">рост конверсии в сделку</span></div>
         </div>
       </div>
       <div class="mock">
@@ -73,6 +82,44 @@ OnLead.landingPage = function landingPage() {
         <div class="mock-hot">
           <div class="mono">HOT LEAD / NOW</div>
           <b><i></i> Готов к диалогу <span class="mono" style="color:var(--teal)">8.7/10</span></b>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="audiences">
+    <div class="wrap">
+      <div class="sf-split">
+        <div>
+          <div class="sf-label">02 / MARKET SOLUTIONS</div>
+          <h2>Решения под ваши<br><span class="accent" style="color:var(--teal)">бизнес-задачи</span></h2>
+        </div>
+        <p class="muted" style="max-width:34ch;margin:0">Готовые связки и сценарии лидогенерации для ключевых сегментов рынка.</p>
+      </div>
+
+      <div class="selling-proof-grid">
+        <div class="selling-proof-card">
+          <span class="badge-selling">🎯 SMM & ТАРГЕТОЛОГИ</span>
+          <h3 style="margin:12px 0 6px">Автоматизация рутины 24/7</h3>
+          <p style="font-size:14px;color:var(--muted)">Парсинг целевых подписчиков, нейрокомментинг, массовые касания и автоматические лендинги для клиентов за 10 минут.</p>
+          <div class="stat-val" style="margin-top:14px">в 3.5 раза</div>
+          <div class="stat-label">выше скорость обработки входящего трафика</div>
+        </div>
+
+        <div class="selling-proof-card">
+          <span class="badge-selling">🏢 МАЛЫЙ И СРЕДНИЙ БИЗНЕС</span>
+          <h3 style="margin:12px 0 6px">Горячие клиенты без раздувания штата</h3>
+          <p style="font-size:14px;color:var(--muted)">AI-менеджер сам начинает диалог в VK, отвечает на частые вопросы и квалифицирует лидов перед передачей менеджеру продаж.</p>
+          <div class="stat-val" style="margin-top:14px">-60%</div>
+          <div class="stat-label">снижение стоимости привлечения квалифицированного лида</div>
+        </div>
+
+        <div class="selling-proof-card">
+          <span class="badge-selling">🚀 B2B & DIGITAL АГЕНТСТВА</span>
+          <h3 style="margin:12px 0 6px">Масштабирование и мультиаккаунты</h3>
+          <p style="font-size:14px;color:var(--muted)">Управление сотнями сообществ, командный доступ (RBAC), подробная сквозная аналитика и CRM для клиентских проектов.</p>
+          <div class="stat-val" style="margin-top:14px">+45%</div>
+          <div class="stat-label">рост LTV и удержания клиентов агентства</div>
         </div>
       </div>
     </div>
@@ -158,23 +205,30 @@ OnLead.landingPage = function landingPage() {
     <div class="wrap">
       <div class="sf-split">
         <div>
-          <div class="sf-label">04 / ACCESS</div>
-          <h2>Выберите<br>свой <span class="accent" style="color:var(--teal)">ритм</span></h2>
-          <p class="muted" style="max-width:34ch">Начните с одного потока. Добавляйте инструменты, когда увидите точку роста.</p>
+          <div class="sf-label">04 / ACCESS & TARIFFS</div>
+          <h2>Прозрачные тарифы<br>под <span class="accent" style="color:var(--teal)">любой масштаб</span></h2>
+          <p class="muted" style="max-width:34ch">Первые 72 часа бесплатно без ввода карты. Далее гибкие тарифы и скидки до 30% при оплате за год.</p>
         </div>
       </div>
       <div class="grid-3" style="margin-top:28px">
-        ${OnLead.PACKAGES.map((p) => `
+        ${OnLead.PACKAGES.map((p) => {
+          const segTag = p.id === "mini" ? "Для фрилансеров & SMM" : (p.id === "maxi" ? "Для малого и среднего бизнеса (SMB)" : "Для агентств & инфобизнеса");
+          return `
           <article class="card price-card ${p.id === "maxi" ? "hit" : ""}">
+            <span class="tariff-segment-tag">${segTag}</span>
             <span class="chip ${p.id === "maxi" ? "" : (p.id === "maxi-ai" ? "chip-gold" : "")}">${OnLead.esc(p.badge)}</span>
             <h3>${OnLead.esc(p.name)}</h3>
             <div class="amount">${p.price}<small style="font-size:16px"> ₽/мес</small></div>
             <p style="margin-bottom:12px">${OnLead.esc(p.hint)}</p>
             <ul>${p.tools.slice(0, 6).map((s) => `<li>${OnLead.esc(OnLead.tool(s)?.name || s)}</li>`).join("")}</ul>
-            <a class="btn btn-primary btn-block" style="margin-top:16px" href="${origin}/#/register">Выбрать ${OnLead.esc(p.name)}</a>
-          </article>`).join("")}
+            <a class="btn btn-primary btn-block" style="margin-top:16px" href="${origin}/#/register">Попробовать 72 часа бесплатно</a>
+          </article>`;
+        }).join("")}
       </div>
-      <p class="muted" style="margin-top:12px">Периоды 1 / 3 / 6 месяцев со скидкой. Отдельные инструменты — поштучно.</p>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:20px;flex-wrap:wrap">
+        <span class="badge-roi">💡 Гарантия окупаемости: запуск первой кампании занимает менее 10 минут</span>
+        <span class="muted">· Персональный менеджер и техподдержка 24/7</span>
+      </div>
     </div>
   </section>
   <section class="section" id="faq" style="background:var(--surface);border-top:1px solid var(--line)">
